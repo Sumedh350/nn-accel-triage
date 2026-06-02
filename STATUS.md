@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 1 — DUT Modeling & Testbench Setup
-## Current Step: Step 4 — control_fsm.sv (next RTL module)
+## Current Step: Step 5 — NumPy reference model (RTL complete)
 
 ## Completed
 - GitHub repo created
@@ -29,10 +29,18 @@
   - AXI-style req_x_ready/req_x_rvld handshake; req_x_rdata from sram_rdata
   - Elaboration-time $fatal for ADDR_W<1, DATA_W<1, NUM_BANKS<1
   - FSM: IDLE ↔ STALL (2-state, 1-bit enum)
+- `rtl/control_fsm.sv` written and lint-clean (Verilator 4.038, exit 0, zero warnings)
+  - Top-level sequencer: instantiates mac_array, quant_unit, mem_arbiter
+  - FSM: IDLE → LOAD → COMPUTE → QUANTIZE → STORE → DONE
+  - LOAD: fetches N×N weights (req_a) and N×N activations (req_b) concurrently
+  - COMPUTE: drives mac_array; mac→quant handshake collapses into one cycle
+  - QUANTIZE: latches INT8 quant_result tile from quant_unit in one cycle
+  - STORE: writes N×N INT8 results back to SRAM via req_a
+  - start/done pulse handshake; synchronous active-low reset
+  - Elaboration-time $fatal guards for N, DATA_TYPE, ADDR_W, NUM_BANKS
 - Verilator 4.038 installed in WSL Ubuntu-22.04
 
 ## Next Session Goal
-- Write `rtl/control_fsm.sv`: top-level sequencer connecting mem_arbiter → mac_array → quant_unit
 - Write `tb/reference_model/mac_ref.py`: pure NumPy NxN matrix multiply reference
   - Must match mac_array.sv semantics exactly (signed INT8/INT16, ACC_W accumulation)
 - Write `tb/reference_model/quant_ref.py`: NumPy reference for quant_unit
