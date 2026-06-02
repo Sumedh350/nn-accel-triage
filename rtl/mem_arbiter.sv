@@ -92,7 +92,8 @@ module mem_arbiter #(
 
   assign bank_a   = req_a_addr[BANK_BITS-1:0];
   assign bank_b   = req_b_addr[BANK_BITS-1:0];
-  assign conflict = req_a_valid & req_b_valid & (bank_a == bank_b);
+  assign conflict = req_a_valid & req_b_valid &
+                    ((NUM_BANKS == 1) || (bank_a == bank_b));
 
   // ── Arbitration (combinational) ──────────────────────────────────────────
   // Exactly one of grant_a / grant_b is 1 each cycle that a request is served.

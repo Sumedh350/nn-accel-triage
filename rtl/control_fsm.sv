@@ -79,8 +79,8 @@ module control_fsm #(
   state_t state;
 
   // ── Tile data registers ───────────────────────────────────────────────────
-  logic [DATA_W-1:0] weight_tile  [N][N];
-  logic [DATA_W-1:0] act_tile     [N][N];
+  logic signed [DATA_W-1:0] weight_tile  [N][N];
+  logic signed [DATA_W-1:0] act_tile     [N][N];
   logic [7:0]        quant_result [N][N];   // latched from quant_unit.out_q
 
   // ── Element counters ──────────────────────────────────────────────────────

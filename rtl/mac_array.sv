@@ -61,10 +61,12 @@ module mac_array #(
   state_t state;
 
   // ── Storage registers ────────────────────────────────────────────────────
-  logic signed [DATA_W-1:0] A_reg [N][N];  // latched activation tile
-  logic signed [DATA_W-1:0] B_reg [N][N];  // latched weight tile
-  logic signed [ACC_W-1:0]  acc   [N][N];  // per-PE signed accumulator
-  int unsigned               step;          // inner-product index: 0 .. N-1
+  localparam int unsigned STEP_W = (N > 1) ? $clog2(N) : 1;
+
+  logic signed [DATA_W-1:0]  A_reg [N][N];  // latched activation tile
+  logic signed [DATA_W-1:0]  B_reg [N][N];  // latched weight tile
+  logic signed [ACC_W-1:0]   acc   [N][N];  // per-PE signed accumulator
+  logic [STEP_W-1:0]          step;          // inner-product index: 0 .. N-1
 
   // ── Combinational products for the current step ──────────────────────────
   // Both operands are sign-extended to ACC_W before the multiply so the full
@@ -118,7 +120,7 @@ module mac_array #(
           for (int i = 0; i < int'(N); i++)
             for (int j = 0; j < int'(N); j++)
               acc[i][j] <= acc[i][j] + pe_prod[i][j];
-          if (step == N - 1) begin
+          if (step == STEP_W'(N - 1)) begin
             out_valid <= 1'b1;
             state     <= DONE;
           end else
