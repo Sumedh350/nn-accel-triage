@@ -1,4 +1,17 @@
 # NN Accelerator Triage Project
+## Project Mission
+Agentic AI for Failure Triage and Root-Cause Hinting in NN Accelerator Verification.
+
+Build a layered testbench for a small neural-network accelerator and integrate 
+an AI assistant that groups failures, summarizes likely causes, and recommends 
+next debug steps using logs, traces, scoreboard mismatches, and commit metadata.
+
+## Five Core Objectives (must all be satisfied)
+(i)   Verify functional correctness across tensor shapes, quantization, and memory behaviors
+(ii)  Cluster regression failures automatically
+(iii) Generate natural-language debug summaries and likely root-cause hints
+(iv)  Compare triage time against manual methods (benchmark)
+(v)   Package a reproducible failure-analysis benchmark others can run
 
 ## What This Project Is
 A layered testbench for a small neural-network accelerator RTL design,
