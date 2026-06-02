@@ -44,4 +44,4 @@ root causes, and recommends debug steps.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 1, Step 1 — RTL DUT modeling (just started)
+Phase 1, Step 4 — RTL DUT modeling (mem_arbiter.sv done; control_fsm.sv is next)

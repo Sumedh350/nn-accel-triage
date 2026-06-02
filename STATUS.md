@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 1 — DUT Modeling & Testbench Setup
-## Current Step: Step 3 — CocoTB testbench + NumPy reference model
+## Current Step: Step 4 — control_fsm.sv (next RTL module)
 
 ## Completed
 - GitHub repo created
@@ -20,9 +20,19 @@
   - Synchronous active-low reset, AXI-style valid/ready on input and output
   - FSM: IDLE → DONE (single-cycle latency, 1 tile per 2 cycles throughput)
   - Elaboration-time $fatal guards for N, SCALE_W, SHIFT_W
+- `rtl/mem_arbiter.sv` written and lint-clean (Verilator 4.038, exit 0, zero warnings)
+  - Shared SRAM arbiter for weight (A) and activation (B) memory requestors
+  - Round-robin arbitration via last_grant register; alternates each cycle when both contend
+  - Bank-conflict detection: addr[BANK_BITS-1:0] compared across both requestors
+  - Stall injection: 1-cycle STALL penalty on conflict; bank_conflict output asserted
+  - Combinational SRAM read model (sram_rdata valid same cycle as sram_ce/sram_addr)
+  - AXI-style req_x_ready/req_x_rvld handshake; req_x_rdata from sram_rdata
+  - Elaboration-time $fatal for ADDR_W<1, DATA_W<1, NUM_BANKS<1
+  - FSM: IDLE ↔ STALL (2-state, 1-bit enum)
 - Verilator 4.038 installed in WSL Ubuntu-22.04
 
 ## Next Session Goal
+- Write `rtl/control_fsm.sv`: top-level sequencer connecting mem_arbiter → mac_array → quant_unit
 - Write `tb/reference_model/mac_ref.py`: pure NumPy NxN matrix multiply reference
   - Must match mac_array.sv semantics exactly (signed INT8/INT16, ACC_W accumulation)
 - Write `tb/reference_model/quant_ref.py`: NumPy reference for quant_unit
