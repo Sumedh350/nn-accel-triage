@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 1 — DUT Modeling & Testbench Setup
-## Current Step: Step 5 — NumPy reference model (RTL complete)
+## Current Step: Step 6 — CocoTB testbench (reference models complete)
 
 ## Completed
 - GitHub repo created
@@ -40,11 +40,18 @@
   - Elaboration-time $fatal guards for N, DATA_TYPE, ADDR_W, NUM_BANKS
 - Verilator 4.038 installed in WSL Ubuntu-22.04
 
+- `tb/reference_model/mac_ref.py` written and test-clean (36 pytest tests, 0 failures)
+  - Pure NumPy NxN matrix multiply: INT8→int32, INT16→int64(48-bit), FP16→zeros
+  - Matches mac_array.sv exactly: sign-extension, 32/48-bit accumulator wrap
+- `tb/reference_model/quant_ref.py` written and test-clean
+  - Per-channel asymmetric INT8: (acc*scale)>>>shift + zero_pt, clamped to [-128,127]
+  - Arithmetic right-shift via Python int (arbitrary-precision; no int64 overflow)
+  - Matches quant_unit.sv formula and PROD_W=ACC_W+SCALE_W+1 intermediate exactly
+- `tb/reference_model/test_mac_ref.py` — 14 tests (sign, shape, wrap, FP16 stub)
+- `tb/reference_model/test_quant_ref.py` — 22 tests (clamp, arith-shift, per-channel)
+- pytest installed; `~/.local/bin` added to PATH in `~/.bashrc`
+
 ## Next Session Goal
-- Write `tb/reference_model/mac_ref.py`: pure NumPy NxN matrix multiply reference
-  - Must match mac_array.sv semantics exactly (signed INT8/INT16, ACC_W accumulation)
-- Write `tb/reference_model/quant_ref.py`: NumPy reference for quant_unit
-  - Match quant_unit.sv formula exactly (multiply, arithmetic right-shift, clamp)
 - Write `tb/cocotb/test_mac_array.py`: CocoTB testbench for mac_array
   - Drive valid/ready handshake, compare DUT output vs reference model
   - Test cases: INT8 (N=4), INT16 (N=4), edge cases (N=1, all-zero, max values)
