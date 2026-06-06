@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 1 — DUT Modeling & Testbench Setup
-## Current Step: Step 7 — CocoTB testbench for quant_unit and fault-injection runs
+## Current Step: Step 8 — mismatch_schema.json, regression_db.jsonl first entries, fault injection
 
 ## Completed
 - GitHub repo created
@@ -57,18 +57,26 @@
   - Configs: INT8/N=4, INT16/N=4, INT8/N=1
   - Tests: zeros, random (5 iters), max_values, identity, reset, backpressure, pipeline
   - All expected values from mac_ref.py — no hardcoded results
-- `tb/cocotb/Makefile` — Verilator+CocoTB; per-config sim_build dirs; targets:
-  make test_int8 / test_int16 / test_n1 / test_all
+- `tb/cocotb/Makefile` — restructured with DUT variable (DUT=mac_array|quant_unit);
+  per-config sim_build dirs; mac targets: test_int8/test_int16/test_n1/test_all;
+  quant targets: quant_int8/quant_int16/quant_all
 - CocoTB 2.x phase discipline: never drive or await ReadOnly() while in ReadOnly phase;
   Verilator bakes params into binary — use separate SIM_BUILD dirs per config
 - Verilator 5.049 confirmed working for simulation (upgraded from 4.038)
 
+- `tb/cocotb/quant_unit_wrap.sv` — lint-clean SV wrapper; flattens unpacked ports to
+  packed flat buses (row-major 2D, channel-index-major 1D for scale/shift/zero_pt)
+- `tb/cocotb/test_quant_unit.py` — 9 CocoTB 2.0.1 tests × 2 configs = 18 tests, 0 failures
+  - Configs: ACC_W=32/N=4 (INT8-sourced accumulators), ACC_W=48/N=4 (INT16-sourced)
+  - Tests: passthrough, random (5 iters), clamp_high, clamp_low, arith_rshift,
+    per_channel_independence, reset, backpressure, back_to_back
+  - All expected values from quant_ref.py; acc values bounded to ACC_W-bit signed range
+- `tb/cocotb/Makefile` updated with quant_int8/quant_int16/quant_all targets
+
 ## Next Session Goal
-- Write `tb/cocotb/test_quant_unit.py`: CocoTB testbench for quant_unit.sv
-  - Drive ACC_W-bit accumulator tile, per-channel scale/shift/zero_pt
-  - Compare DUT output against quant_ref.py
 - Create `/docs/mismatch_schema.json` (scoreboard mismatch record format)
 - Append first regression entries to regression_db.jsonl
+- Fault injection: run quant_unit and mac_array against RTL fault variants in /rtl/faults/
 
 ## Blockers / Open Questions
 - None
