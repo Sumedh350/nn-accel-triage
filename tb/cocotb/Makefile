@@ -62,7 +62,7 @@ test_n1:
 test_all: test_int8 test_int16 test_n1
 
 # ── quant_unit convenience targets ────────────────────────────────────────────
-.PHONY: quant_int8 quant_int16 quant_all
+.PHONY: quant_int8 quant_int16 quant_n1 quant_all
 
 quant_int8:
 	$(MAKE) DUT=quant_unit QUANT_N=4 QUANT_ACC_W=32
@@ -70,4 +70,7 @@ quant_int8:
 quant_int16:
 	$(MAKE) DUT=quant_unit QUANT_N=4 QUANT_ACC_W=48
 
-quant_all: quant_int8 quant_int16
+quant_n1:
+	$(MAKE) DUT=quant_unit QUANT_N=1 QUANT_ACC_W=32
+
+quant_all: quant_int8 quant_int16 quant_n1

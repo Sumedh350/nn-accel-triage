@@ -245,7 +245,7 @@ async def test_arith_rshift(dut):
     scale   = np.ones(N, dtype=np.uint16)
     zero_pt = np.zeros(N, dtype=np.int8)
 
-    for sh_val in [0, 1, 2, 4, 8, 15]:
+    for sh_val in [0, 1, 2, 4, 8, 15, 31]:
         shift = np.full(N, sh_val, dtype=np.uint8)
         got      = await run_quant_tile(dut, acc, scale, shift, zero_pt)
         expected = quant_ref(acc, scale, shift, zero_pt)
@@ -271,6 +271,29 @@ async def test_per_channel_independence(dut):
     got      = await run_quant_tile(dut, acc, scale, shift, zero_pt)
     expected = quant_ref(acc, scale, shift, zero_pt)
     assert_tile_equal(got, expected, "test_per_channel_independence")
+
+
+@cocotb.test()
+async def test_scale_zero(dut):
+    """scale=0: output must equal zero_pt broadcast across each row (RTL-defined behavior).
+
+    With scale=0: prod = acc*0 = 0; shifted = 0; biased = zero_pt → q = clamp(zero_pt).
+    Since zero_pt is INT8, the clamp is a no-op and output equals zero_pt exactly.
+    """
+    cocotb.start_soon(Clock(dut.clk, CLK_NS, unit="ns").start())
+    await reset_dut(dut)
+
+    rng = np.random.default_rng(seed=17)
+    acc     = rng.integers(_ACC_MIN, _ACC_MAX + 1, size=(N, N), dtype=_ACC_DTYPE)
+    scale   = np.zeros(N, dtype=np.uint16)
+    shift   = rng.integers(0, 2**SHIFT_W, size=N, dtype=np.uint8)
+    zero_pt = rng.integers(-128, 128, size=N, dtype=np.int8)
+    got      = await run_quant_tile(dut, acc, scale, shift, zero_pt)
+    expected = quant_ref(acc, scale, shift, zero_pt)
+    assert_tile_equal(got, expected, "test_scale_zero")
+    for i in range(N):
+        assert np.all(got[i] == zero_pt[i]), \
+            f"test_scale_zero row {i}: expected all {zero_pt[i]}, got {got[i]}"
 
 
 @cocotb.test()
