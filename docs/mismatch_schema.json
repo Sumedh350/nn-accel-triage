@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "regression_db_record",
+  "title": "RegressionDbRecord",
+  "description": "One line of regression_db.jsonl — records a single test run against a DUT variant.",
+  "type": "object",
+  "required": [
+    "run_id", "timestamp", "dut", "variant", "config",
+    "test_name", "status", "mismatch_details"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "UUID4 string uniquely identifying this run."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp when the record was written (e.g. 2026-06-06T12:00:00.000000Z)."
+    },
+    "dut": {
+      "type": "string",
+      "enum": ["mac_array", "quant_unit"],
+      "description": "Which DUT was under test."
+    },
+    "variant": {
+      "type": "string",
+      "enum": [
+        "golden",
+        "fault_acc_overflow",
+        "fault_wrong_sign",
+        "fault_off_by_one",
+        "fault_reset"
+      ],
+      "description": "Golden RTL or one of the fault-injected variants."
+    },
+    "config": {
+      "type": "object",
+      "required": ["n"],
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Array dimension (N×N)."
+        },
+        "data_type": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "description": "0=INT8, 1=INT16, 2=FP16 (mac_array only)."
+        },
+        "acc_w": {
+          "type": "integer",
+          "enum": [32, 48],
+          "description": "Accumulator width in bits (quant_unit only)."
+        }
+      }
+    },
+    "test_name": {
+      "type": "string",
+      "description": "Short descriptor identifying the test case and seed."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pass", "fail", "error"],
+      "description": "pass = DUT output matched reference; fail = mismatch detected; error = simulation or infrastructure error."
+    },
+    "mismatch_details": {
+      "oneOf": [
+        {
+          "type": "null",
+          "description": "null when status is pass or error."
+        },
+        {
+          "type": "object",
+          "required": ["total_elements", "mismatch_count", "max_abs_error", "first_mismatch"],
+          "additionalProperties": false,
+          "properties": {
+            "total_elements": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Total number of output elements compared."
+            },
+            "mismatch_count": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Number of elements where expected != actual."
+            },
+            "max_abs_error": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Maximum |expected - actual| across all mismatched elements."
+            },
+            "first_mismatch": {
+              "type": "object",
+              "required": ["row", "col", "expected", "actual"],
+              "additionalProperties": false,
+              "properties": {
+                "row": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Row index of the first mismatched element."
+                },
+                "col": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Column index of the first mismatched element."
+                },
+                "expected": {
+                  "type": "integer",
+                  "description": "Reference model value at (row, col)."
+                },
+                "actual": {
+                  "type": "integer",
+                  "description": "DUT (or fault model) value at (row, col)."
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

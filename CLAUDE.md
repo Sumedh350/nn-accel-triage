@@ -86,6 +86,6 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 1, Step 7 complete — CocoTB testbench for quant_unit done + post-review fixes applied
-  (30 tests pass: 10×N=4/AW=32, 10×N=4/AW=48, 10×N=1/AW=32)
-Phase 1, Step 8 next — mismatch_schema.json, regression_db.jsonl first entries, fault injection
+Phase 1, Step 8 complete — TestGenerator, 4 RTL fault variants, mismatch schema, regression_db bootstrap
+  (56 pytest tests pass; 27 regression_db entries: 15 golden pass, 12 fault fail)
+Phase 2 next — CocoTB integration: live regression_db appends from testbench, fault-variant sim targets

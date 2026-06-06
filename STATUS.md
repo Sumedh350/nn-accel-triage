@@ -78,10 +78,25 @@
 ## Step 7: COMPLETE (including post-review fixes)
 30 CocoTB tests passing (10×N=4/AW=32, 10×N=4/AW=48, 10×N=1/AW=32). 21 mac_array tests unchanged.
 
-## Step 8 Goal
-- Create `/docs/mismatch_schema.json` (scoreboard mismatch record format)
-- Append first regression entries to regression_db.jsonl
-- Fault injection: run quant_unit and mac_array against RTL fault variants in /rtl/faults/
+## Step 8: COMPLETE
+- `tb/reference_model/test_generator.py` — TestGenerator class (gen_mac_vectors, gen_quant_vectors)
+  - INT8/INT16 input bounds; acc bounded to ACC_W-bit signed range (CLAUDE.md invariant)
+  - 20 new pytest tests; total suite: 56 tests, 0 failures
+- `rtl/faults/` (4 files, each a one-line change from mac_array.sv):
+  - mac_array_fault_acc_overflow.sv  — ACC_W INT8: 32→16 (accumulator too narrow)
+  - mac_array_fault_wrong_sign.sv    — A_reg: signed→unsigned (zero-extends instead of sign-extends)
+  - mac_array_fault_off_by_one.sv    — termination: N-1→N-2 (misses last outer product)
+  - mac_array_fault_reset.sv         — polarity: !rst_n→rst_n (active-high instead of active-low)
+- `docs/mismatch_schema.json` — JSON Schema (draft-2020-12) validating regression_db records
+- `scripts/gen_initial_regression.py` — bootstrap script using software fault models
+- `regression_db.jsonl` — 27 entries: 15 golden (all pass), 12 fault (all fail)
+  - Seeds [1,9,13] chosen to guarantee int16 overflow for fault_acc_overflow detection
+
+## Phase 2 Goals
+- Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
+- Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
+- Implement failure feature extractor (triage/feature_extractor.py)
+- Implement failure clusterer (triage/clusterer.py)
 
 ## Blockers / Open Questions
 - None
