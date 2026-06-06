@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 1 — DUT Modeling & Testbench Setup
-## Current Step: Step 6 — CocoTB testbench (reference models complete)
+## Current Step: Step 7 — CocoTB testbench for quant_unit and fault-injection runs
 
 ## Completed
 - GitHub repo created
@@ -51,13 +51,24 @@
 - `tb/reference_model/test_quant_ref.py` — 22 tests (clamp, arith-shift, per-channel)
 - pytest installed; `~/.local/bin` added to PATH in `~/.bashrc`
 
+- `tb/cocotb/mac_array_wrap.sv` — lint-clean SV wrapper; flattens unpacked 2-D ports to
+  packed flat buses (row-major: element [i][j] at [(i*N+j)*W +: W])
+- `tb/cocotb/test_mac_array.py` — 7 CocoTB 2.0.1 tests × 3 configs = 21 tests, 0 failures
+  - Configs: INT8/N=4, INT16/N=4, INT8/N=1
+  - Tests: zeros, random (5 iters), max_values, identity, reset, backpressure, pipeline
+  - All expected values from mac_ref.py — no hardcoded results
+- `tb/cocotb/Makefile` — Verilator+CocoTB; per-config sim_build dirs; targets:
+  make test_int8 / test_int16 / test_n1 / test_all
+- CocoTB 2.x phase discipline: never drive or await ReadOnly() while in ReadOnly phase;
+  Verilator bakes params into binary — use separate SIM_BUILD dirs per config
+- Verilator 5.049 confirmed working for simulation (upgraded from 4.038)
+
 ## Next Session Goal
-- Write `tb/cocotb/test_mac_array.py`: CocoTB testbench for mac_array
-  - Drive valid/ready handshake, compare DUT output vs reference model
-  - Test cases: INT8 (N=4), INT16 (N=4), edge cases (N=1, all-zero, max values)
-- Append first regression entries to regression_db.jsonl
+- Write `tb/cocotb/test_quant_unit.py`: CocoTB testbench for quant_unit.sv
+  - Drive ACC_W-bit accumulator tile, per-channel scale/shift/zero_pt
+  - Compare DUT output against quant_ref.py
 - Create `/docs/mismatch_schema.json` (scoreboard mismatch record format)
+- Append first regression entries to regression_db.jsonl
 
 ## Blockers / Open Questions
-- Verilator v5+ not yet installed (Ubuntu 22.04 apt has v4.038 only)
-  - v4.038 passes lint fine; upgrade to v5 before simulation if needed
+- None

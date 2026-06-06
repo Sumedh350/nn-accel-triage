@@ -40,11 +40,30 @@ root causes, and recommends debug steps.
 ```bash
 # Reference model unit tests
 pytest tb/reference_model/ -v
+
+# CocoTB / Verilator simulation (from tb/cocotb/)
+make test_int8    # N=4, INT8
+make test_int16   # N=4, INT16
+make test_n1      # N=1, INT8 edge case
+make test_all     # all three configurations
 ```
+
+## CocoTB 2.x Phase Discipline
+CocoTB 2.x enforces strict simulator phase rules — violations raise RuntimeError:
+- **Never `await ReadOnly()` while already in ReadOnly phase.** After a loop that
+  ends with `await ReadOnly()`, you are still in that phase; a second `await ReadOnly()`
+  is illegal.
+- **Never drive a signal (`.value = x`) during ReadOnly phase.** Always return to
+  Active phase (via `await RisingEdge(clk)`) before driving any signal.
+- **Coroutines that internally call `await ReadOnly()` (e.g. `send_tile`) must be
+  called from Active phase**, not from within a ReadOnly context.
+- **Verilator bakes parameters into the compiled C++ binary.** Each distinct
+  (N, DATA_TYPE) configuration needs its own `sim_build_*` directory — controlled
+  via `SIM_BUILD` in the Makefile — otherwise stale binaries silently use wrong port widths.
 
 ## DO NOT MODIFY
 - /rtl/faults/     → frozen fault variants, never edit after Stage 1
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 1, Step 5 complete — NumPy reference models done (mac_ref.py, quant_ref.py, 36 tests pass)
+Phase 1, Step 6 complete — CocoTB testbench for mac_array done (21 tests pass: 7×INT8, 7×INT16, 7×N=1)
