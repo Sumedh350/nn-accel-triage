@@ -42,10 +42,15 @@ root causes, and recommends debug steps.
 pytest tb/reference_model/ -v
 
 # CocoTB / Verilator simulation (from tb/cocotb/)
-make test_int8    # N=4, INT8
-make test_int16   # N=4, INT16
-make test_n1      # N=1, INT8 edge case
-make test_all     # all three configurations
+make test_int8    # mac_array N=4, INT8
+make test_int16   # mac_array N=4, INT16
+make test_n1      # mac_array N=1, INT8 edge case
+make test_all     # all three mac_array configurations
+
+make quant_int8   # quant_unit N=4, ACC_W=32
+make quant_int16  # quant_unit N=4, ACC_W=48
+make quant_n1     # quant_unit N=1, ACC_W=32 edge case
+make quant_all    # all three quant_unit configurations
 ```
 
 ## CocoTB 2.x Phase Discipline
@@ -81,5 +86,6 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 1, Step 7 complete — CocoTB testbench for quant_unit done (18 tests pass: 9×ACC_W=32, 9×ACC_W=48)
+Phase 1, Step 7 complete — CocoTB testbench for quant_unit done + post-review fixes applied
+  (30 tests pass: 10×N=4/AW=32, 10×N=4/AW=48, 10×N=1/AW=32)
 Phase 1, Step 8 next — mismatch_schema.json, regression_db.jsonl first entries, fault injection

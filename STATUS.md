@@ -66,15 +66,17 @@
 
 - `tb/cocotb/quant_unit_wrap.sv` — lint-clean SV wrapper; flattens unpacked ports to
   packed flat buses (row-major 2D, channel-index-major 1D for scale/shift/zero_pt)
-- `tb/cocotb/test_quant_unit.py` — 9 CocoTB 2.0.1 tests × 2 configs = 18 tests, 0 failures
-  - Configs: ACC_W=32/N=4 (INT8-sourced accumulators), ACC_W=48/N=4 (INT16-sourced)
-  - Tests: passthrough, random (5 iters), clamp_high, clamp_low, arith_rshift,
-    per_channel_independence, reset, backpressure, back_to_back
+- `tb/cocotb/test_quant_unit.py` — 10 CocoTB 2.0.1 tests × 3 configs = 30 tests, 0 failures
+  - Configs: ACC_W=32/N=4 (INT8-sourced), ACC_W=48/N=4 (INT16-sourced), ACC_W=32/N=1 (edge case)
+  - Tests: passthrough, random (5 iters), clamp_high, clamp_low, arith_rshift (shift sweep
+    0/1/2/4/8/15/31 — includes ACC_W-1 boundary), per_channel_independence, scale_zero,
+    reset, backpressure, back_to_back
   - All expected values from quant_ref.py; acc values bounded to ACC_W-bit signed range
-- `tb/cocotb/Makefile` updated with quant_int8/quant_int16/quant_all targets
+  - scale_zero: RTL-defined behavior (acc*0=0 → output = zero_pt); verifies per-row semantics
+- `tb/cocotb/Makefile` updated with quant_int8/quant_int16/quant_n1/quant_all targets
 
-## Step 7: COMPLETE
-18 CocoTB tests passing (9×ACC_W=32, 9×ACC_W=48). 21 mac_array tests unchanged.
+## Step 7: COMPLETE (including post-review fixes)
+30 CocoTB tests passing (10×N=4/AW=32, 10×N=4/AW=48, 10×N=1/AW=32). 21 mac_array tests unchanged.
 
 ## Step 8 Goal
 - Create `/docs/mismatch_schema.json` (scoreboard mismatch record format)
