@@ -73,7 +73,10 @@
   - All expected values from quant_ref.py; acc values bounded to ACC_W-bit signed range
 - `tb/cocotb/Makefile` updated with quant_int8/quant_int16/quant_all targets
 
-## Next Session Goal
+## Step 7: COMPLETE
+18 CocoTB tests passing (9×ACC_W=32, 9×ACC_W=48). 21 mac_array tests unchanged.
+
+## Step 8 Goal
 - Create `/docs/mismatch_schema.json` (scoreboard mismatch record format)
 - Append first regression entries to regression_db.jsonl
 - Fault injection: run quant_unit and mac_array against RTL fault variants in /rtl/faults/

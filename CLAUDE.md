@@ -61,9 +61,25 @@ CocoTB 2.x enforces strict simulator phase rules — violations raise RuntimeErr
   (N, DATA_TYPE) configuration needs its own `sim_build_*` directory — controlled
   via `SIM_BUILD` in the Makefile — otherwise stale binaries silently use wrong port widths.
 
+## Test Vector Generation — Accumulator Range
+When generating random accumulator values, **always bound them to the ACC_W-bit
+signed range, not the NumPy dtype range**:
+```python
+_ACC_MIN = -(1 << (ACC_W - 1))
+_ACC_MAX =  (1 << (ACC_W - 1)) - 1
+acc = rng.integers(_ACC_MIN, _ACC_MAX + 1, size=(N, N), dtype=_ACC_DTYPE)
+```
+The packing mask `int(v) & ((1 << ACC_W) - 1)` silently truncates upper bits.
+A 64-bit value that fits `np.int64` but not a 48-bit accumulator will have the
+correct sign in the reference model (which sees the full Python int) but the
+**wrong sign in the DUT** (which sees only the lower ACC_W bits). The mismatch
+is seed-dependent and easy to miss — some seeds produce values that happen to
+sign-extend cleanly; others don't.
+
 ## DO NOT MODIFY
 - /rtl/faults/     → frozen fault variants, never edit after Stage 1
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 1, Step 6 complete — CocoTB testbench for mac_array done (21 tests pass: 7×INT8, 7×INT16, 7×N=1)
+Phase 1, Step 7 complete — CocoTB testbench for quant_unit done (18 tests pass: 9×ACC_W=32, 9×ACC_W=48)
+Phase 1, Step 8 next — mismatch_schema.json, regression_db.jsonl first entries, fault injection
