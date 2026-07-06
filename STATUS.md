@@ -105,11 +105,24 @@
   - Integration test: validates all 27 regression_db.jsonl records (15 pass, 12 fail counts verified)
 - Total test suite: 64 tests (56 reference model + 8 feature extractor), 0 failures
 
+## Session 10: COMPLETE
+- `triage/clusterer.py` — assigns cluster_label + outlier flag to each feature dict
+  - assign_rule_label(feat): priority-ordered rules → reset_fault | overflow_fault | off_by_one | sign_error | clean_pass | uncategorized
+  - _to_numeric_vector(feat): 5-element normalized vector (mismatch_rate, max_abs_error/65536, bucket/3, reset, overflow)
+  - cluster(features, eps=0.5, min_samples=2): returns enriched dicts; originals unmodified; DBSCAN via scikit-learn
+  - All 27 regression_db records label without "uncategorized": 15 clean_pass, 3 each for reset/overflow/off_by_one/sign_error
+- `triage/test_clusterer.py` — 15 pytest tests, all passing
+  - One test per label (6), two priority-order tests (reset>overflow, overflow>off_by_one)
+  - cluster() field/immutability checks, regression DB label-count verification
+  - DBSCAN: detects singleton outlier, no false positives on uniform data, single-record edge case
+- Total test suite: 79 tests (56 reference model + 8 feature extractor + 15 clusterer), 0 failures
+
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
+- [x] Implement failure clusterer (triage/clusterer.py)
 - [ ] Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
 - [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
-- [ ] Implement failure clusterer (triage/clusterer.py)
+- [ ] Implement triage agent (triage/triage_agent.py): Claude API, per-cluster structured reports
 
 ## Blockers / Open Questions
 - None

@@ -86,8 +86,8 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 2, Session 9 complete — feature extractor (triage/feature_extractor.py)
-  (64 pytest tests pass: 56 reference model + 8 feature extractor)
-  Features: mismatch_rate, max_abs_error, error_magnitude_bucket, has_reset_symptom,
-  has_overflow_symptom, flattened config fields
-Phase 2 next — clusterer (triage/clusterer.py): rule-based pre-bucketing + DBSCAN
+Phase 2, Session 10 complete — clusterer (triage/clusterer.py)
+  (23 pytest tests pass: 8 feature extractor + 15 clusterer)
+  cluster_label: reset_fault, overflow_fault, off_by_one, sign_error, clean_pass, uncategorized
+  outlier: DBSCAN-based anomaly flag (sklearn)
+Phase 2 next — triage_agent.py: Claude API integration, structured triage reports
