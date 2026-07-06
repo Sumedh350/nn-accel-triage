@@ -23,14 +23,14 @@ def assign_rule_label(feat: dict[str, Any]) -> str:
         return "reset_fault"
     if feat["has_overflow_symptom"]:
         return "overflow_fault"
-    if feat["error_magnitude_bucket"] == "medium" and feat["mismatch_rate"] == 1.0:
-        return "off_by_one"
     if (
         feat["error_magnitude_bucket"] == "large"
         and not feat["has_overflow_symptom"]
         and not feat["has_reset_symptom"]
     ):
         return "sign_error"
+    if feat["error_magnitude_bucket"] == "medium" and feat["mismatch_rate"] >= 0.999:
+        return "off_by_one"
     if feat["status"] == "pass":
         return "clean_pass"
     return "uncategorized"
