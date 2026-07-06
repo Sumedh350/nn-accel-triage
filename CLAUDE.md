@@ -86,8 +86,12 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 2, Session 10 complete — clusterer (triage/clusterer.py)
-  (23 pytest tests pass: 8 feature extractor + 15 clusterer)
-  cluster_label: reset_fault, overflow_fault, off_by_one, sign_error, clean_pass, uncategorized
-  outlier: DBSCAN-based anomaly flag (sklearn)
-Phase 2 next — triage_agent.py: Claude API integration, structured triage reports
+Phase 3, Session 11 complete — triage agent (triage/triage_agent.py) + Claude API integration
+  (87 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent)
+  triage(features, client) groups clustered dicts by cluster_label, skips clean_pass
+  Per-cluster prompt: test names, mismatch rates, error ranges, symptom flags, outlier count
+  Report fields: likely_cause, confidence (high|medium|low), recommended_debug_steps, affected_configs
+  affected_configs built deterministically from records (not hallucinated by model)
+  Fallback on anthropic.AnthropicError: confidence=low, empty steps, no exception propagation
+  PROMPTS dict at top of file for easy prompt tuning without touching logic
+Phase 3 next — live regression_db.jsonl appends from CocoTB; fault-variant Makefile targets

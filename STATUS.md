@@ -1,7 +1,7 @@
 # Project Status
 
-## Current Phase: Phase 1 — DUT Modeling & Testbench Setup
-## Current Step: Step 8 — mismatch_schema.json, regression_db.jsonl first entries, fault injection
+## Current Phase: Phase 3 — Triage Agent & Live Integration
+## Current Step: Session 11 complete — triage_agent.py with Claude API (87 tests passing)
 
 ## Completed
 - GitHub repo created
@@ -105,9 +105,9 @@
   - Integration test: validates all 27 regression_db.jsonl records (15 pass, 12 fail counts verified)
 - Total test suite: 64 tests (56 reference model + 8 feature extractor), 0 failures
 
-## Session 10: COMPLETE
+## Session 10: COMPLETE (including post-review fixes)
 - `triage/clusterer.py` — assigns cluster_label + outlier flag to each feature dict
-  - assign_rule_label(feat): priority-ordered rules → reset_fault | overflow_fault | off_by_one | sign_error | clean_pass | uncategorized
+  - assign_rule_label(feat): priority-ordered rules → reset_fault | overflow_fault | sign_error | off_by_one | clean_pass | uncategorized
   - _to_numeric_vector(feat): 5-element normalized vector (mismatch_rate, max_abs_error/65536, bucket/3, reset, overflow)
   - cluster(features, eps=0.5, min_samples=2): returns enriched dicts; originals unmodified; DBSCAN via scikit-learn
   - All 27 regression_db records label without "uncategorized": 15 clean_pass, 3 each for reset/overflow/off_by_one/sign_error
@@ -115,14 +115,41 @@
   - One test per label (6), two priority-order tests (reset>overflow, overflow>off_by_one)
   - cluster() field/immutability checks, regression DB label-count verification
   - DBSCAN: detects singleton outlier, no false positives on uniform data, single-record edge case
+- Post-review fixes (commit c2aca95):
+  - Rule ordering: sign_error now fires before off_by_one — prevents fault_wrong_sign being mislabeled
+    off_by_one when max_abs_error lands in the medium bucket (256–32767) with all elements wrong
+  - Float equality: mismatch_rate >= 0.999 replaces == 1.0, guarding against future float precision drift
+  - Brittle test: test_all_real_records_labeled uses >= instead of == for len and per-label counts,
+    so it survives future appends to the append-only regression_db.jsonl
 - Total test suite: 79 tests (56 reference model + 8 feature extractor + 15 clusterer), 0 failures
+
+## Session 11: COMPLETE
+- `triage/triage_agent.py` — Claude API integration; per-cluster structured triage reports
+  - triage(features, client=None): groups by cluster_label, skips clean_pass, returns dict[label→report]
+  - _triage_cluster: builds rich prompt (test names, mismatch rates, error ranges, symptom flags,
+    outlier count), calls claude-sonnet-4-6 (max_tokens=512), parses JSON response
+  - PROMPTS dict at top for easy tuning: "system" + "cluster_user" templates
+  - affected_configs built deterministically from records (not left to model)
+  - Fallback on anthropic.AnthropicError: confidence=low, empty steps, no propagation
+  - Report shape: likely_cause (str), confidence (high|medium|low),
+    recommended_debug_steps (list[str], 2-3 items), affected_configs (list[str])
+- `triage/test_triage_agent.py` — 8 pytest tests, all passing; zero real API calls
+  - Mock client injected via client= parameter (MagicMock(spec=anthropic.Anthropic))
+  - Tests: grouping/call-count, required fields, confidence validity, debug-steps shape,
+    affected-configs non-empty, clean_pass skipped, empty input, API error fallback
+- Total test suite: 87 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent), 0 failures
 
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
 - [x] Implement failure clusterer (triage/clusterer.py)
+- [x] Implement triage agent (triage/triage_agent.py): Claude API, per-cluster structured reports
 - [ ] Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
 - [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
-- [ ] Implement triage agent (triage/triage_agent.py): Claude API, per-cluster structured reports
+
+## Phase 3 Goals
+- [ ] Live regression_db.jsonl appends from CocoTB during simulation
+- [ ] Fault-variant Makefile targets (per-fault sim_build dirs)
+- [ ] End-to-end benchmark: run triage on live fault sim results, measure cluster accuracy
 
 ## Blockers / Open Questions
 - None
