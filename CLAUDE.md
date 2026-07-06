@@ -86,12 +86,12 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 3, Session 11 complete — triage agent (triage/triage_agent.py) + Claude API integration
-  (87 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent)
-  triage(features, client) groups clustered dicts by cluster_label, skips clean_pass
-  Per-cluster prompt: test names, mismatch rates, error ranges, symptom flags, outlier count
-  Report fields: likely_cause, confidence (high|medium|low), recommended_debug_steps, affected_configs
-  affected_configs built deterministically from records (not hallucinated by model)
-  Fallback on anthropic.AnthropicError: confidence=low, empty steps, no exception propagation
-  PROMPTS dict at top of file for easy prompt tuning without touching logic
+Phase 3, Session 12 complete — RAG store for historical failures (triage/rag_store.py)
+  (101 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store)
+  RAGStore: TF-IDF similarity over structured-field token strings (sklearn only, no embeddings)
+  add(record, report) / query(record, top_k=3) / save(path) / load(path)
+  query() returns {record, report, similarity, matched_fields} — matched_fields lists agreeing fields
+  triage(features, client, rag_store=None): top-3 similar past failures injected into prompt if store provided
+  After each successful API call, all records in the cluster are added to the store
+  PROMPTS["rag_context"] added for the similar-failures section
 Phase 3 next — live regression_db.jsonl appends from CocoTB; fault-variant Makefile targets

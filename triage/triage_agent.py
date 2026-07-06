@@ -13,6 +13,8 @@ from typing import Any
 
 import anthropic
 
+from rag_store import RAGStore
+
 
 PROMPTS: dict[str, str] = {
     "system": (
@@ -39,6 +41,10 @@ PROMPTS: dict[str, str] = {
         "  Outlier count       : {n_outliers}\n\n"
         "Identify the most likely RTL root cause for this failure cluster."
     ),
+    "rag_context": (
+        "\nPast similar failures (for reference only — do not copy blindly):\n"
+        "{similar_block}\n"
+    ),
 }
 
 _SKIP_LABELS: frozenset[str] = frozenset({"clean_pass"})
@@ -60,10 +66,30 @@ def _build_config_str(record: dict[str, Any]) -> str:
     return "/".join(parts)
 
 
+def _build_rag_block(records: list[dict[str, Any]], rag_store: RAGStore) -> str:
+    """Return a formatted string of top-3 similar past failures, or ""."""
+    if not records:
+        return ""
+    similar = rag_store.query(records[0], top_k=3)
+    if not similar:
+        return ""
+    lines: list[str] = []
+    for i, hit in enumerate(similar, start=1):
+        rep = hit["report"]
+        matched = hit["matched_fields"]
+        lines.append(
+            f"[{i}] matched_fields={matched} | "
+            f"cause: {rep.get('likely_cause', '')} | "
+            f"confidence: {rep.get('confidence', '')}"
+        )
+    return "\n".join(lines)
+
+
 def _triage_cluster(
     label: str,
     records: list[dict[str, Any]],
     client: anthropic.Anthropic,
+    rag_store: RAGStore | None = None,
 ) -> dict[str, Any]:
     affected_configs = sorted({_build_config_str(r) for r in records})
 
@@ -93,6 +119,11 @@ def _triage_cluster(
         n_outliers=n_outliers,
     )
 
+    if rag_store is not None:
+        rag_block = _build_rag_block(records, rag_store)
+        if rag_block:
+            user_msg += PROMPTS["rag_context"].format(similar_block=rag_block)
+
     try:
         response = client.messages.create(
             model=_MODEL,
@@ -102,6 +133,9 @@ def _triage_cluster(
         )
         report: dict[str, Any] = json.loads(response.content[0].text)
         report["affected_configs"] = affected_configs
+        if rag_store is not None:
+            for r in records:
+                rag_store.add(r, report)
         return report
     except anthropic.AnthropicError as exc:
         return {
@@ -115,12 +149,15 @@ def _triage_cluster(
 def triage(
     features: list[dict[str, Any]],
     client: anthropic.Anthropic | None = None,
+    rag_store: RAGStore | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Group clustered feature dicts by label and call Claude for each failure cluster.
 
     Args:
-        features: list of dicts from clusterer.cluster() (must have cluster_label field)
-        client:   Anthropic client; created automatically if None
+        features:  list of dicts from clusterer.cluster() (must have cluster_label field)
+        client:    Anthropic client; created automatically if None
+        rag_store: optional RAGStore; if provided, similar past failures are included in
+                   the prompt and each generated report is added to the store
 
     Returns:
         dict mapping cluster_label -> structured triage report
@@ -139,6 +176,6 @@ def triage(
     for label, records in groups.items():
         if label in _SKIP_LABELS:
             continue
-        result[label] = _triage_cluster(label, records, client)
+        result[label] = _triage_cluster(label, records, client, rag_store=rag_store)
 
     return result

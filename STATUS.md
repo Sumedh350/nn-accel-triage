@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 3 — Triage Agent & Live Integration
-## Current Step: Session 11 complete — triage_agent.py with Claude API (87 tests passing)
+## Current Step: Session 12 complete — RAG store for historical failures (101 tests passing)
 
 ## Completed
 - GitHub repo created
@@ -139,6 +139,26 @@
     affected-configs non-empty, clean_pass skipped, empty input, API error fallback
 - Total test suite: 87 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent), 0 failures
 
+## Session 12: COMPLETE
+- `triage/rag_store.py` — TF-IDF-based store of historical failure records and triage reports
+  - `_record_to_text`: converts structured fields → token string (label, bucket, dut, n, dtype, accw, rate, symptoms)
+  - `RAGStore.add(record, report)`: appends entry, marks index dirty
+  - `RAGStore.query(record, top_k=3)`: rebuilds TF-IDF lazily, returns cosine-ranked hits
+  - Each hit: `{record, report, similarity: float, matched_fields: list[str]}`
+  - `matched_fields`: lists fields where query and stored record agree (explainability)
+  - `save(path)` / `load(path)`: JSON round-trip (text field excluded from file)
+  - Empty store returns [] without error; top_k > len clamped gracefully
+- `triage/triage_agent.py` updated:
+  - `triage(features, client=None, rag_store=None)` — new optional rag_store parameter
+  - `_triage_cluster(..., rag_store=None)` — queries store before API call, appends to prompt
+  - `PROMPTS["rag_context"]` template added for the similar-failures section
+  - After successful API call: each record in cluster added to store (grows over runs)
+  - Error fallback path unchanged (store not updated on API error)
+- `triage/test_rag_store.py` — 14 pytest tests, all passing
+  - Empty store, add/query, top_k clamping, save/load round-trip, semantic ranking,
+    unseen record type, matched_fields list, similarity float, result dict shape
+- Total test suite: 101 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store), 0 failures
+
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
 - [x] Implement failure clusterer (triage/clusterer.py)
@@ -147,6 +167,7 @@
 - [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
 
 ## Phase 3 Goals
+- [x] RAG store for historical failures (triage/rag_store.py)
 - [ ] Live regression_db.jsonl appends from CocoTB during simulation
 - [ ] Fault-variant Makefile targets (per-fault sim_build dirs)
 - [ ] End-to-end benchmark: run triage on live fault sim results, measure cluster accuracy
