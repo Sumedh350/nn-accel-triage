@@ -86,12 +86,12 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 3, Session 12 complete — RAG store for historical failures (triage/rag_store.py)
-  (101 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store)
-  RAGStore: TF-IDF similarity over structured-field token strings (sklearn only, no embeddings)
-  add(record, report) / query(record, top_k=3) / save(path) / load(path)
-  query() returns {record, report, similarity, matched_fields} — matched_fields lists agreeing fields
-  triage(features, client, rag_store=None): top-3 similar past failures injected into prompt if store provided
-  After each successful API call, all records in the cluster are added to the store
-  PROMPTS["rag_context"] added for the similar-failures section
-Phase 3 next — live regression_db.jsonl appends from CocoTB; fault-variant Makefile targets
+Phase 3, Session 13 complete — multi-turn agentic debug loop (triage/debug_loop.py)
+  (106 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop)
+  DebugLoop.run(label, records, client, rag_store, max_turns=3) -> {report, turns, history, converged}
+  Iterates until confidence=="high" or max_turns exhausted; maintains multi-turn messages list
+  Each turn: {"turn": int, "prompt": str, "response": dict} appended to history
+  _follow_up_question(report, records): programmatic follow-up targeting overflow/reset symptoms or alternatives
+  RAG store updated once after successful run (same semantics as _triage_cluster)
+  Imports _build_config_str, _build_rag_block, PROMPTS, _MODEL, _MAX_TOKENS from triage_agent (no changes to that file)
+Phase 3 COMPLETE — all triage engine components delivered

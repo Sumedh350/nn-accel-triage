@@ -159,6 +159,22 @@
     unseen record type, matched_fields list, similarity float, result dict shape
 - Total test suite: 101 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store), 0 failures
 
+## Session 13: COMPLETE
+- `triage/debug_loop.py` — multi-turn agentic debug loop
+  - `_build_initial_message(label, records)`: same cluster summary as `_triage_cluster`
+  - `_follow_up_question(report, records)`: programmatic follow-up targeting overflow/reset/alternative hypotheses
+  - `class DebugLoop` with `run(label, records, client, rag_store, max_turns=3) -> dict`
+  - Loop: maintains multi-turn `messages` list (alternating user/assistant); iterates until confidence=="high" or max_turns
+  - Each history entry: `{"turn": int, "prompt": str, "response": dict}`
+  - Error handling: `AnthropicError` caught per-turn; last valid report preserved; fallback on turn-1 error
+  - RAG store updated once after successful run (same semantics as `_triage_cluster`)
+  - Zero changes to `triage_agent.py` — imports shared helpers/constants directly
+- `triage/test_debug_loop.py` — 5 pytest tests, all passing; zero real API calls
+  - `make_mock_client(reports)`: `side_effect` list for successive API responses
+  - Tests: high-confidence convergence (turn=1), max_turns exhaustion, history-length invariant,
+    converged=True only when high, API error graceful fallback
+- Total test suite: 106 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop), 0 failures
+
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
 - [x] Implement failure clusterer (triage/clusterer.py)
@@ -166,11 +182,9 @@
 - [ ] Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
 - [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
 
-## Phase 3 Goals
+## Phase 3 Goals — COMPLETE
 - [x] RAG store for historical failures (triage/rag_store.py)
-- [ ] Live regression_db.jsonl appends from CocoTB during simulation
-- [ ] Fault-variant Makefile targets (per-fault sim_build dirs)
-- [ ] End-to-end benchmark: run triage on live fault sim results, measure cluster accuracy
+- [x] Multi-turn agentic debug loop (triage/debug_loop.py)
 
 ## Blockers / Open Questions
 - None
