@@ -86,6 +86,8 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 1, Step 8 complete — TestGenerator, 4 RTL fault variants, mismatch schema, regression_db bootstrap
-  (56 pytest tests pass; 27 regression_db entries: 15 golden pass, 12 fault fail)
-Phase 2 next — CocoTB integration: live regression_db appends from testbench, fault-variant sim targets
+Phase 2, Session 9 complete — feature extractor (triage/feature_extractor.py)
+  (64 pytest tests pass: 56 reference model + 8 feature extractor)
+  Features: mismatch_rate, max_abs_error, error_magnitude_bucket, has_reset_symptom,
+  has_overflow_symptom, flattened config fields
+Phase 2 next — clusterer (triage/clusterer.py): rule-based pre-bucketing + DBSCAN

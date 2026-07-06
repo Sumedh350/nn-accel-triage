@@ -92,11 +92,24 @@
 - `regression_db.jsonl` — 27 entries: 15 golden (all pass), 12 fault (all fail)
   - Seeds [1,9,13] chosen to guarantee int16 overflow for fault_acc_overflow detection
 
+## Session 9: COMPLETE
+- `triage/feature_extractor.py` — extracts 13 features per regression_db record
+  - Identity pass-through: run_id, dut, variant, test_name, status
+  - Flattened config: config_n, config_data_type (None for quant_unit), config_acc_w
+  - Numeric: mismatch_rate (count/total), max_abs_error (0 for pass)
+  - Bucket: error_magnitude_bucket — "none" | "small" (<256) | "medium" (<32768) | "large" (≥32768)
+  - Flags: has_reset_symptom (first_mismatch.actual == 0), has_overflow_symptom (power-of-2 error ≥ 32768)
+  - Public API: extract_features(record) and load_and_extract(db_path)
+- `triage/test_feature_extractor.py` — 8 pytest tests, all passing
+  - Synthetic unit tests: pass record, small/medium/large error, reset symptom, overflow symptom, bucket boundaries
+  - Integration test: validates all 27 regression_db.jsonl records (15 pass, 12 fail counts verified)
+- Total test suite: 64 tests (56 reference model + 8 feature extractor), 0 failures
+
 ## Phase 2 Goals
-- Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
-- Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
-- Implement failure feature extractor (triage/feature_extractor.py)
-- Implement failure clusterer (triage/clusterer.py)
+- [x] Implement failure feature extractor (triage/feature_extractor.py)
+- [ ] Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
+- [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
+- [ ] Implement failure clusterer (triage/clusterer.py)
 
 ## Blockers / Open Questions
 - None
