@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  nn-accel-triage:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ../reports:/workspace/reports

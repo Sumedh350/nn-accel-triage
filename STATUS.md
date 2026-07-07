@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 4 — Benchmark & Eval Metrics
-## Current Step: Session 16 complete — triage dashboard, 120 tests passing
+## Current Step: Session 17 complete — Docker, README, one-command reproduce, 120 tests passing
 
 ## Completed
 - GitHub repo created
@@ -240,11 +240,38 @@
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
 
+## Session 17: COMPLETE
+- `README.md` — full project README
+  - Badges: Python 3.10+, Verilator 5.x, CocoTB 2.x, 120 tests passing
+  - ASCII pipeline diagram: RTL → CocoTB → regression_db → Feature Extractor → Clusterer → Triage Agent → Dashboard
+  - Sections: Overview, Architecture, Quick Start (Docker), Manual Setup, Running the Benchmark,
+    Opening the Dashboard, Project Structure, Key Results (342.6x speedup table), Citation
+- `requirements.txt` — anthropic>=0.24, numpy>=1.24, scikit-learn>=1.3, cocotb>=2.0, pytest>=7.0
+- `pytest.ini` — `pythonpath = .` so `pytest` resolves package imports from project root without PYTHONPATH override
+- `docker/Dockerfile` — ubuntu:22.04; Python 3.10; Verilator 5.x built from source (v5.020 tag); Node.js 20
+- `docker/run_pipeline.sh` — 5-stage pipeline: reference model tests → triage tests → CocoTB sim →
+  benchmark (skipped if no ANTHROPIC_API_KEY) → dashboard; [PASS]/[SKIP]/[FAIL] per stage; exits 1 on failure
+- `docker/docker-compose.yml` — passes ANTHROPIC_API_KEY from host env; mounts reports/ as host volume
+- One-command reproduce: `docker compose -f docker/docker-compose.yml run --rm nn-accel-triage`
+- Total test suite: 120 tests (unchanged), 0 failures
+
+## Phase 2 Goals
+- [x] Implement failure feature extractor (triage/feature_extractor.py)
+- [x] Implement failure clusterer (triage/clusterer.py)
+- [x] Implement triage agent (triage/triage_agent.py): Claude API, per-cluster structured reports
+- [ ] Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
+- [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
+
+## Phase 3 Goals — COMPLETE
+- [x] RAG store for historical failures (triage/rag_store.py)
+- [x] Multi-turn agentic debug loop (triage/debug_loop.py)
+
 ## Phase 4 Goals — COMPLETE
 - [x] Ground truth labels and eval metrics (benchmark/)
 - [x] End-to-end benchmark runner (benchmark/benchmark_runner.py)
 - [x] Benchmark results and comparison against manual triage (reports/benchmark_20260707.json: 342.6x speedup, 100% accuracy)
 - [x] Triage dashboard (dashboard/dashboard.py → reports/dashboard.html)
+- [x] Docker + README + one-command reproduce (docker/, README.md, requirements.txt, pytest.ini)
 
 ## Blockers / Open Questions
 - None

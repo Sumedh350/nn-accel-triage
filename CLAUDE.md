@@ -86,19 +86,14 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 16 complete — triage dashboard, 120 tests passing
+Phase 4, Session 17 complete — Docker, README, one-command reproduce, 120 tests passing
   (120 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard)
-  dashboard/dashboard.py:
-    generate_dashboard(db_path, reports_dir, triage_reports=None, output_path) -> Path
-    Sections: header badges, benchmark timing chart (log₁₀ scale), cluster summary table,
-              per-cluster triage reports (auto-loaded or generated), regression DB summary
-    Reads: regression_db.jsonl + reports/benchmark_*.json + reports/triage_reports_*.json (all latest)
-    Output: reports/dashboard.html (self-contained, no JS libraries)
-    CLI: python -m dashboard.dashboard [--triage]
-      --triage: calls Claude API per failure cluster, saves reports/triage_reports_YYYYMMDD.json
-      (no flag): auto-loads saved triage_reports_*.json if present, skips API
-  reports/dashboard.html: generated static HTML dashboard (triage section fully populated)
-  reports/triage_reports_20260707.json: cached Claude API triage reports (4 clusters, all HIGH confidence)
-  Timing bars use log₁₀(time+0.001) — triage (31.5 s) dominates, other stages (<0.1 s) still visible
+  README.md: full project README with badges, ASCII pipeline diagram, quick-start, results table, citation
+  docker/Dockerfile: ubuntu:22.04, Python 3.10, Verilator 5.x from source, Node.js 20
+  docker/run_pipeline.sh: 5-stage pipeline script (stages 1-3,5 run without API key; stage 4 skips if unset)
+  docker/docker-compose.yml: passes ANTHROPIC_API_KEY, mounts reports/ as host volume
+  requirements.txt: anthropic, numpy, scikit-learn, cocotb, pytest with minimum versions
+  pytest.ini: pythonpath=. so pytest works from project root without PYTHONPATH override
+  One-command reproduce: ANTHROPIC_API_KEY=... docker compose -f docker/docker-compose.yml run --rm nn-accel-triage
 Phase 3 COMPLETE — all triage engine components delivered
-Phase 4 COMPLETE — benchmark, eval metrics, and triage dashboard delivered
+Phase 4 COMPLETE — benchmark, eval metrics, triage dashboard, and reproducibility packaging delivered
