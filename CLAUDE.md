@@ -86,16 +86,15 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 15 complete — benchmark runner, 342x speedup, 100% accuracy (116 tests passing)
-  (116 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner)
-  benchmark/benchmark_runner.py:
-    run_benchmark(db_path, ground_truth_path, client, append_to_db) -> result dict
-    MANUAL_SECONDS_PER_CLUSTER = 2700 (45 min: 5 read + 15 hypothesize + 20 verify + 5 document)
-    stage_times: {load, extract_features, cluster, triage, evaluate} via time.perf_counter()
-    speedup_factor = manual_baseline_seconds / total_ai_time
-    append_to_db=True writes {"record_type": "benchmark_run", ...} entry to regression_db.jsonl
-  reports/benchmark_20260707.json: total_ai_time=31.5s, speedup=342.6x, accuracy=1.000, confidence=1.000
-  triage_agent.py + debug_loop.py: _strip_fences() added — handles ```json fences some model versions return
-  feature_extractor.load_and_extract + benchmark_runner.load_regression_db: skip "record_type" meta-records
+Phase 4, Session 16 complete — triage dashboard, 120 tests passing
+  (120 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard)
+  dashboard/dashboard.py:
+    generate_dashboard(db_path, reports_dir, triage_reports=None, output_path) -> Path
+    Sections: header badges, benchmark timing chart (log₁₀ scale), cluster summary table,
+              per-cluster triage reports (optional), regression DB summary
+    Reads: regression_db.jsonl + reports/benchmark_*.json (latest)
+    Output: reports/dashboard.html (self-contained, no JS libraries)
+  reports/dashboard.html: generated static HTML dashboard
+  Timing bars use log₁₀(time+0.001) — triage (31.5 s) dominates, other stages (<0.1 s) still visible
 Phase 3 COMPLETE — all triage engine components delivered
-Phase 4 COMPLETE — benchmark and eval metrics delivered
+Phase 4 COMPLETE — benchmark, eval metrics, and triage dashboard delivered

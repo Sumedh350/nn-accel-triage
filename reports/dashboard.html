@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NN Accelerator Triage Dashboard</title>
+<style>
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: #f0f4f8; color: #2d3748; font-size: 14px; }
+
+/* Header */
+header { background: #1a1a2e; color: #e2e8f0; padding: 24px 32px; }
+header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 10px; }
+.badges { display: flex; gap: 12px; flex-wrap: wrap; }
+.badge { padding: 4px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+.badge-green  { background: #276749; color: #c6f6d5; }
+.badge-blue   { background: #2b6cb0; color: #bee3f8; }
+.badge-purple { background: #553c9a; color: #e9d8fd; }
+.badge-gray   { background: #4a5568; color: #e2e8f0; }
+
+/* Sections */
+main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1);
+          margin-bottom: 28px; padding: 22px 24px; }
+section h2 { font-size: 1.1rem; font-weight: 700; color: #1a1a2e;
+             border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th { background: #edf2f7; text-align: left; padding: 8px 12px;
+     font-size: 0.8rem; text-transform: uppercase; letter-spacing: .05em; color: #4a5568; }
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; }
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) td { background: #f7fafc; }
+tr:hover td { background: #ebf4ff; }
+
+/* Bar chart */
+.chart { margin-top: 4px; }
+.chart-note { font-size: 0.78rem; color: #718096; margin-bottom: 12px; font-style: italic; }
+.bar-row { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
+.bar-label { width: 130px; font-size: 0.82rem; color: #4a5568; flex-shrink: 0; }
+.bar-track { flex: 1; background: #edf2f7; border-radius: 4px; height: 20px; }
+.bar-fill { height: 100%; border-radius: 4px; background: #4a79a5; transition: width .3s; }
+.bar-fill-dominant { background: #2b6cb0; }
+.bar-value { width: 80px; font-size: 0.78rem; color: #718096; flex-shrink: 0; text-align: right; }
+
+/* Triage cards */
+.card { border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 16px; padding: 16px 18px; }
+.card h3 { font-size: 0.95rem; font-weight: 700; color: #1a1a2e; margin-bottom: 10px; }
+.card-row { margin-bottom: 6px; font-size: 0.88rem; }
+.card-row strong { color: #4a5568; }
+.conf-high   { color: #276749; font-weight: 700; }
+.conf-medium { color: #c05621; font-weight: 700; }
+.conf-low    { color: #9b2c2c; font-weight: 700; }
+.steps-list { margin: 4px 0 0 20px; }
+.steps-list li { margin-bottom: 2px; }
+.placeholder { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 6px;
+               padding: 14px 18px; color: #744210; font-size: 0.88rem; }
+
+/* DB summary stat boxes */
+.stat-boxes { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+.stat-box { flex: 1; min-width: 120px; background: #edf2f7; border-radius: 6px;
+            padding: 14px 16px; text-align: center; }
+.stat-box .num { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; }
+.stat-box .lbl { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em;
+                 color: #718096; margin-top: 2px; }
+.stat-box.pass .num { color: #276749; }
+.stat-box.fail .num { color: #9b2c2c; }
+
+footer { text-align: center; color: #a0aec0; font-size: 0.78rem; padding: 12px; }
+
+</style>
+</head>
+<body>
+<header><h1>NN Accelerator Triage Dashboard</h1><div class="badges"><span class="badge badge-blue">Speedup 342.6×</span><span class="badge badge-green">Accuracy 100%</span><span class="badge badge-purple">Confidence 1.00</span><span class="badge badge-gray">Benchmark 2026-07-07</span></div></header>
+<main>
+<section><h2>Benchmark Timing</h2><p class="chart-note">Bar widths use log₁₀ scale — <strong>triage</strong> dominates at 99.8% of total AI time (31.46 s). Total pipeline: 31.52 s.</p><div class="chart"><div class="bar-row"><span class="bar-label">load</span><div class="bar-track"><div class="bar-fill" style="width:8.3%"></div></div><span class="bar-value">0.5 ms</span></div>
+<div class="bar-row"><span class="bar-label">extract features</span><div class="bar-track"><div class="bar-fill" style="width:5.0%"></div></div><span class="bar-value">0.0 ms</span></div>
+<div class="bar-row"><span class="bar-label">cluster</span><div class="bar-track"><div class="bar-fill" style="width:43.2%"></div></div><span class="bar-value">64.4 ms</span></div>
+<div class="bar-row"><span class="bar-label">triage</span><div class="bar-track"><div class="bar-fill bar-fill-dominant" style="width:100.0%"></div></div><span class="bar-value">31.458 s</span></div>
+<div class="bar-row"><span class="bar-label">evaluate</span><div class="bar-track"><div class="bar-fill" style="width:9.7%"></div></div><span class="bar-value">0.7 ms</span></div>
+</div></section>
+<section><h2>Cluster Summary</h2><table><thead><tr><th>Cluster Label</th><th>Records</th><th>Failures</th><th>Mismatch Rate</th><th>Max Abs Error</th></tr></thead><tbody><tr><td><code>clean_pass</code></td><td>15</td><td>0</td><td>—</td><td>—</td></tr>
+<tr><td><code>off_by_one</code></td><td>3</td><td>3</td><td>1.000–1.000</td><td>11,110–13,688</td></tr>
+<tr><td><code>overflow_fault</code></td><td>3</td><td>3</td><td>0.062–0.062</td><td>65,536–65,536</td></tr>
+<tr><td><code>reset_fault</code></td><td>3</td><td>3</td><td>1.000–1.000</td><td>32,946–37,206</td></tr>
+<tr><td><code>sign_error</code></td><td>3</td><td>3</td><td>0.750–1.000</td><td>49,152–65,792</td></tr>
+</tbody></table></section>
+<section><h2>Per-Cluster Triage Reports</h2><div class="placeholder"><strong>Triage reports not available.</strong> Pass <code>triage_reports</code> to <code>generate_dashboard()</code> or run the benchmark pipeline with a Claude API client to generate them.</div></section>
+<section><h2>Regression DB Summary</h2><div class="stat-boxes"><div class="stat-box"><div class="num">27</div><div class="lbl">Total Records</div></div><div class="stat-box pass"><div class="num">15</div><div class="lbl">Passed</div></div><div class="stat-box fail"><div class="num">12</div><div class="lbl">Failed</div></div></div>
+<table><thead><tr><th>Variant</th><th>Record Count</th></tr></thead><tbody><tr><td><code>fault_acc_overflow</code></td><td>3</td></tr>
+<tr><td><code>fault_off_by_one</code></td><td>3</td></tr>
+<tr><td><code>fault_reset</code></td><td>3</td></tr>
+<tr><td><code>fault_wrong_sign</code></td><td>3</td></tr>
+<tr><td><code>golden</code></td><td>15</td></tr>
+</tbody></table></section>
+</main>
+<footer>Generated 2026-07-07T19:03:32</footer>
+</body>
+</html>

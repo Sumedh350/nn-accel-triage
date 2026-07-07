@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 4 — Benchmark & Eval Metrics
-## Current Step: Session 15 complete — benchmark runner, 342x speedup, 100% accuracy (116 tests passing)
+## Current Step: Session 16 complete — triage dashboard, 120 tests passing
 
 ## Completed
 - GitHub repo created
@@ -207,6 +207,20 @@
   feature_extractor.load_and_extract skips meta-records
 - Total test suite: 116 tests (111 prior + 5 benchmark runner), 0 failures
 
+## Session 16: COMPLETE
+- `dashboard/dashboard.py` — static HTML dashboard generator
+  - generate_dashboard(db_path, reports_dir, triage_reports=None, output_path) → Path
+  - Reads regression_db.jsonl (feature extraction + clustering, deterministic) and latest benchmark_*.json
+  - Sections: header badges (speedup/accuracy/confidence), benchmark timing chart, cluster summary table,
+    per-cluster triage reports (optional; placeholder when not provided), regression DB summary
+  - Timing bars use log₁₀(time+0.001) scale — all 5 stages visible despite triage dominating (31.5 s)
+  - Pure Python stdlib + inline CSS; single self-contained HTML file, no JS libraries
+  - `__init__.py` makes dashboard/ a proper package (same pattern as benchmark/)
+- `dashboard/test_dashboard.py` — 4 pytest tests, all passing
+  - test_generates_without_errors, test_valid_html, test_cluster_labels_appear, test_speedup_appears
+- `reports/dashboard.html` — generated static HTML dashboard (committed for reference)
+- Total test suite: 120 tests (116 prior + 4 dashboard), 0 failures
+
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
 - [x] Implement failure clusterer (triage/clusterer.py)
@@ -222,6 +236,7 @@
 - [x] Ground truth labels and eval metrics (benchmark/)
 - [x] End-to-end benchmark runner (benchmark/benchmark_runner.py)
 - [x] Benchmark results and comparison against manual triage (reports/benchmark_20260707.json: 342.6x speedup, 100% accuracy)
+- [x] Triage dashboard (dashboard/dashboard.py → reports/dashboard.html)
 
 ## Blockers / Open Questions
 - None
