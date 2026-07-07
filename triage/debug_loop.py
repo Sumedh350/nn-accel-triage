@@ -22,6 +22,8 @@ from triage_agent import (
 
 
 def _build_initial_message(label: str, records: list[dict[str, Any]]) -> str:
+    if not records:
+        raise ValueError("records must not be empty")
     test_rows = "\n".join(
         f"  {r['test_name']} | {r['variant']} | N={r['config_n']} | "
         f"mismatch={r['mismatch_rate']:.3f} | max_err={r['max_abs_error']}"
@@ -99,6 +101,19 @@ class DebugLoop:
                 "converged": True iff final confidence == "high",
             }
         """
+        if max_turns < 1:
+            return {
+                "report": {
+                    "likely_cause": "No turns requested.",
+                    "confidence": "low",
+                    "recommended_debug_steps": [],
+                    "affected_configs": sorted({_build_config_str(r) for r in records}),
+                },
+                "turns": 0,
+                "history": [],
+                "converged": False,
+            }
+
         if client is None:
             client = anthropic.Anthropic()
 
@@ -125,7 +140,7 @@ class DebugLoop:
                 )
                 raw_text = response.content[0].text
                 report: dict[str, Any] = json.loads(raw_text)
-                report["affected_configs"] = affected_configs
+                report["affected_configs"] = list(affected_configs)
                 last_report = report
 
                 history.append({
@@ -142,12 +157,12 @@ class DebugLoop:
                     messages.append({"role": "assistant", "content": raw_text})
                     messages.append({"role": "user", "content": follow_up})
 
-            except anthropic.AnthropicError as exc:
+            except (anthropic.AnthropicError, json.JSONDecodeError, ValueError) as exc:
                 fallback: dict[str, Any] = {
                     "likely_cause": f"API error: {exc}",
                     "confidence": "low",
                     "recommended_debug_steps": [],
-                    "affected_configs": affected_configs,
+                    "affected_configs": list(affected_configs),
                 }
                 history.append({
                     "turn": turn,
@@ -161,7 +176,7 @@ class DebugLoop:
         if (
             last_report is not None
             and rag_store is not None
-            and not last_report["likely_cause"].startswith("API error:")
+            and not last_report.get("likely_cause", "").startswith("API error:")
         ):
             for r in records:
                 rag_store.add(r, last_report)
