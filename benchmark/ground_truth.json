@@ -1,0 +1,22 @@
+{
+  "golden": {
+    "label": "no_fault",
+    "description": "Baseline golden RTL; all tests pass with zero mismatches."
+  },
+  "fault_acc_overflow": {
+    "label": "accumulator_overflow",
+    "description": "Accumulator width narrowed from 32 to 16 bits; large partial sums overflow silently."
+  },
+  "fault_wrong_sign": {
+    "label": "sign_extension_error",
+    "description": "Weight register cast from signed to unsigned; negative weights zero-extend instead of sign-extend."
+  },
+  "fault_off_by_one": {
+    "label": "loop_boundary_error",
+    "description": "Outer-product loop terminates at N-2 instead of N-1; last column of partial sums never accumulated."
+  },
+  "fault_reset": {
+    "label": "reset_polarity_error",
+    "description": "Reset polarity inverted (active-high instead of active-low); design never resets, producing stale output."
+  }
+}

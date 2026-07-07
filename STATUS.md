@@ -1,7 +1,7 @@
 # Project Status
 
-## Current Phase: Phase 3 — Triage Agent & Live Integration
-## Current Step: Session 12 complete — RAG store for historical failures (101 tests passing)
+## Current Phase: Phase 4 — Benchmark & Eval Metrics
+## Current Step: Session 14 complete — ground truth labels and eval metrics (111 tests passing)
 
 ## Completed
 - GitHub repo created
@@ -175,6 +175,21 @@
     converged=True only when high, API error graceful fallback
 - Total test suite: 106 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop), 0 failures
 
+## Session 14: COMPLETE
+- `benchmark/ground_truth.json` — maps each RTL variant to canonical label + description
+  - golden → no_fault, fault_acc_overflow → accumulator_overflow,
+    fault_wrong_sign → sign_extension_error, fault_off_by_one → loop_boundary_error,
+    fault_reset → reset_polarity_error
+- `benchmark/evaluator.py` — pure-Python benchmark scoring (no sklearn)
+  - CLUSTER_TO_GT: cluster_label → ground-truth label mapping
+  - evaluate(clustered_features, reports, ground_truth_path) → per-label P/R/F1, overall accuracy, mean confidence
+  - Confusion matrix built from (true_label, predicted_label) pairs; per-label TP/FP/FN computed from it
+  - Missing variants skipped with warnings.warn; reports confidence weighted high=1.0/medium=0.5/low=0.0
+  - format_report(metrics) → formatted table string
+- `benchmark/test_evaluator.py` — 5 pytest tests, all passing
+  - Perfect predictions, all-wrong, mixed (known P/R/F1 values), non-empty format_report, missing-variant skip
+- Total test suite: 111 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator), 0 failures
+
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
 - [x] Implement failure clusterer (triage/clusterer.py)
@@ -185,6 +200,11 @@
 ## Phase 3 Goals — COMPLETE
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
+
+## Phase 4 Goals — IN PROGRESS
+- [x] Ground truth labels and eval metrics (benchmark/)
+- [ ] End-to-end benchmark runner
+- [ ] Benchmark results and comparison against manual triage
 
 ## Blockers / Open Questions
 - None

@@ -86,12 +86,14 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 3, Session 13 complete — multi-turn agentic debug loop (triage/debug_loop.py)
-  (106 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop)
-  DebugLoop.run(label, records, client, rag_store, max_turns=3) -> {report, turns, history, converged}
-  Iterates until confidence=="high" or max_turns exhausted; maintains multi-turn messages list
-  Each turn: {"turn": int, "prompt": str, "response": dict} appended to history
-  _follow_up_question(report, records): programmatic follow-up targeting overflow/reset symptoms or alternatives
-  RAG store updated once after successful run (same semantics as _triage_cluster)
-  Imports _build_config_str, _build_rag_block, PROMPTS, _MODEL, _MAX_TOKENS from triage_agent (no changes to that file)
+Phase 4, Session 14 complete — ground truth labels and eval metrics (benchmark/)
+  (111 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator)
+  benchmark/ground_truth.json: variant → {label, description} for all 5 RTL variants
+  benchmark/evaluator.py:
+    CLUSTER_TO_GT: maps cluster_label (clusterer output) → ground-truth label space
+    evaluate(clustered_features, reports, ground_truth_path) -> {per_label, overall_accuracy, mean_confidence, total_records}
+    Per-label precision/recall/F1 from scratch (no sklearn); mean_confidence from reports dict (high=1.0, medium=0.5, low=0.0)
+    Missing ground-truth variants skipped with warnings.warn (no KeyError)
+    format_report(metrics) -> human-readable table string
 Phase 3 COMPLETE — all triage engine components delivered
+Phase 4 IN PROGRESS — benchmark and eval metrics
