@@ -24,8 +24,12 @@ def _is_power_of_two(n: int) -> bool:
     return n > 0 and (n & (n - 1)) == 0
 
 
-def extract_features(record: dict) -> dict:
-    """Return a feature dict for one regression_db record."""
+def extract_features(record: dict, vcd_path: str | Path | None = None) -> dict:
+    """Return a feature dict for one regression_db record.
+
+    vcd_path: optional path to a VCD file; if provided, adds first_divergence_cycle
+    and total_cycles to the returned dict.
+    """
     status = record["status"]
     config = record["config"]
     details = record.get("mismatch_details")
@@ -46,7 +50,7 @@ def extract_features(record: dict) -> dict:
     )
     has_overflow_symptom = max_err >= 32768 and _is_power_of_two(max_err)
 
-    return {
+    feat: dict = {
         "run_id": record["run_id"],
         "dut": record["dut"],
         "variant": record["variant"],
@@ -61,6 +65,17 @@ def extract_features(record: dict) -> dict:
         "has_reset_symptom": has_reset_symptom,
         "has_overflow_symptom": has_overflow_symptom,
     }
+
+    if vcd_path is not None:
+        from triage.vcd_parser import parse_vcd
+        vcd = parse_vcd(vcd_path)
+        feat["first_divergence_cycle"] = vcd["first_divergence_cycle"]
+        feat["total_cycles"] = vcd["total_cycles"]
+    else:
+        feat["first_divergence_cycle"] = None
+        feat["total_cycles"] = None
+
+    return feat
 
 
 def load_and_extract(db_path: str | Path) -> list[dict]:

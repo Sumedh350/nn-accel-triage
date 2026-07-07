@@ -7,6 +7,10 @@
 ![CocoTB 2.x](https://img.shields.io/badge/cocotb-2.x-orange)
 ![Tests](https://img.shields.io/badge/tests-120%20passing-brightgreen)
 
+## Abstract
+
+We present NN-Accel-Triage, an agentic AI system for automated failure triage in neural-network accelerator verification. Given a regression database of RTL simulation mismatches, the system clusters failures by symptom, generates structured root-cause reports via a large language model with retrieval-augmented generation and multi-turn reasoning, and benchmarks triage quality against ground truth labels. On a dataset of 13 fault variants across 8 fault categories in a parameterized MAC array and quantization unit, our approach achieves 100% clustering accuracy with mean confidence 1.000, reducing triage time from an estimated 180 minutes to 31.5 seconds (342× speedup). A rule-based baseline achieves 72.7% accuracy without LLM augmentation, demonstrating the value of the agentic component. We release the benchmark dataset, RTL fault variants, triage pipeline, and dashboard as open-source artifacts.
+
 ## Overview
 
 This project builds a layered testbench for a small neural-network accelerator RTL design and integrates an AI triage agent that automatically clusters regression failures, generates natural-language root-cause summaries, and recommends next debug steps. The AI pipeline processes mismatch logs, trace data, and scoreboard records from CocoTB/Verilator simulations, then uses Claude to produce structured per-cluster triage reports — achieving a **342.6× speedup** over manual triage with **100% accuracy** on the benchmark dataset.

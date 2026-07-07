@@ -86,8 +86,12 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 18 complete — 13 fault variants, --no-llm baseline (72.7% vs 100% LLM), 120 tests passing
-  (120 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard)
+Phase 4, Session 19 complete — VCD waveform parser, academic abstract, 123 tests passing
+  (123 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+  triage/vcd_parser.py: stdlib-only VCD parser; extracts first_divergence_cycle, total_cycles, diverging_signals
+  triage/feature_extractor.py: optional vcd_path param adds VCD features to feature dict (backward compatible)
+  README.md: academic abstract (150 words) added between badges and Overview; real benchmark numbers filled in
+Session 18: 13 fault variants, --no-llm baseline (72.7% vs 100% LLM), 120 tests passing
   scripts/generate_faults.py: programmatic fault generator; 9 new RTL variants from mac_array.sv and quant_unit.sv
   rtl/faults/: 13 total fault files (4 original + 9 new); each is a single targeted substitution
   benchmark_runner.py --no-llm: skips Claude API, uses cluster labels directly, prints rule-based vs LLM comparison table

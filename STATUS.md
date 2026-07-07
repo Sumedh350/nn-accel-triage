@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 4 — Benchmark & Eval Metrics
-## Current Step: Session 18 complete — 13 fault variants, --no-llm baseline (72.7% vs 100% LLM), 120 tests passing
+## Current Step: Session 19 complete — VCD waveform parser, academic abstract, 123 tests passing
 
 ## Completed
 - GitHub repo created
@@ -265,6 +265,24 @@
 ## Phase 3 Goals — COMPLETE
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
+
+## Session 19: COMPLETE
+- `triage/vcd_parser.py` — stdlib-only VCD waveform parser
+  - `parse_vcd(vcd_path)`: parses Verilator-generated VCD header ($var declarations) and simulation body
+  - `first_divergence_cycle`: 1-indexed clock cycle when `out_valid` first rises (proxy for first DUT output)
+  - `total_cycles`: total rising edges of `clk`
+  - `diverging_signals`: sorted list of signal names that changed value at all during simulation
+  - Graceful fallback: missing/empty file returns all-None dict
+- `triage/feature_extractor.py` — added optional `vcd_path` parameter to `extract_features()`
+  - If provided: calls `parse_vcd()`, adds `first_divergence_cycle` and `total_cycles` to feature dict
+  - If omitted: both fields set to None (fully backward compatible; `load_and_extract` unchanged)
+- `triage/test_vcd_parser.py` — 3 new pytest tests
+  - `test_parse_synthetic_vcd`: minimal VCD with 2 rising clk edges, out_valid rising on cycle 2
+  - `test_missing_file`: nonexistent path returns all-None
+  - `test_first_divergence_none_when_no_out_valid_rise`: clk toggles but out_valid never rises → None
+- `README.md` — academic abstract added between badges and Overview section
+  - 150-word paper-style abstract with real benchmark numbers: 13 variants / 8 categories / 100% LLM / 72.7% rule-based / 342× speedup
+- Total test suite: 123 tests (120 prior + 3 VCD parser), 0 failures
 
 ## Session 18: COMPLETE
 - `scripts/generate_faults.py` — programmatic RTL fault generator
