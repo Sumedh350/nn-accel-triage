@@ -1,0 +1,50 @@
+{
+  "overflow_fault": {
+    "likely_cause": "The accumulator register is missing one bit of width, causing a wrap-around overflow at 2^16 (65536) when accumulating INT8 products for N=4, indicating the accumulator is likely declared as 16-bit signed instead of the required 17+ bit width.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL accumulator register declaration and verify its bit-width is sufficient to hold the maximum possible accumulated sum (N * 127 * 127 for INT8 inputs) without overflow.",
+      "Check the partial-product addition logic for any implicit truncation or narrowing casts that would cap the result at 16 bits, particularly looking for missing carry-out bits in the adder chain.",
+      "Run a directed test with inputs set to maximum INT8 values (127 * 127) and N=4 to confirm the overflow threshold matches 2^16, then compare against the golden model with a wider accumulator."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_acc_overflow"
+    ]
+  },
+  "sign_error": {
+    "likely_cause": "The sign bit of INT8 operands is not being extended or interpreted correctly during accumulation, likely due to a missing or incorrect sign-extension when widening 8-bit signed values to a wider datapath, causing large magnitude errors consistent with flipped sign contributions.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the sign-extension logic where INT8 inputs are cast to wider integer types (e.g., 8-bit to 16/32-bit) in the multiply-accumulate datapath and verify `$signed()` or explicit sign-extension is applied correctly.",
+      "Add waveform probes on the input operand sign bits and the extended/widened versions entering the multiplier to confirm whether the MSB is being replicated or zero-filled incorrectly.",
+      "Write a directed test using a known negative INT8 value (e.g., -1 = 0xFF) and verify the accumulated output matches the expected signed result, isolating whether the error is in sign-extension, two's-complement interpretation, or final output truncation."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_wrong_sign"
+    ]
+  },
+  "off_by_one": {
+    "likely_cause": "An off-by-one indexing error in the accumulation loop bounds or partial-sum address calculation causes every output element to accumulate one too many or too few MAC operations, producing a 100% mismatch rate with large systematic errors consistent with a full row/column of int8 products being added or omitted.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect loop-bound literals and fence-post conditions in the MAC accumulation FSM or generate loop (e.g., '<' vs '<=' on the K/channel dimension index) and compare against the golden reference model.",
+      "Add waveform probes on the accumulator enable, the loop counter terminal-count signal, and the write-back address for N=4 to confirm exactly one extra or missing accumulation step per output tile.",
+      "Cross-check the partial-sum read/write pointer arithmetic in the address generator for an off-by-one in the base-address offset or stride calculation that could shift every result by one element."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_off_by_one"
+    ]
+  },
+  "reset_fault": {
+    "likely_cause": "Accumulator or weight/activation registers are not properly cleared on reset, causing stale garbage values from previous computations to corrupt all outputs when the accelerator is restarted.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect RTL reset logic for all pipeline registers, accumulators, and scratchpad memories to verify synchronous/asynchronous reset is correctly connected and asserted for the required number of cycles.",
+      "Run a waveform simulation of the fault_reset scenario and check register values immediately after reset deassertion to confirm whether accumulator and data path registers hold zero or contain stale data.",
+      "Review the reset sequencing in the testbench and DUT top-level to ensure the reset pulse width meets the minimum required duration and that all clock domains are properly reset before computation begins."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_reset"
+    ]
+  }
+}

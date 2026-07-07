@@ -38,6 +38,13 @@ def _find_latest_benchmark(reports_dir: Path) -> dict[str, Any] | None:
     return json.loads(files[-1].read_text(encoding="utf-8"))
 
 
+def _find_latest_triage_reports(reports_dir: Path) -> dict[str, Any] | None:
+    files = sorted(reports_dir.glob("triage_reports_*.json"))
+    if not files:
+        return None
+    return json.loads(files[-1].read_text(encoding="utf-8"))
+
+
 def _load_db_records(db_path: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for line in db_path.read_text(encoding="utf-8").splitlines():
@@ -421,6 +428,8 @@ def generate_dashboard(
     clustered = cluster(features)
     cluster_stats = _compute_cluster_stats(clustered)
     benchmark = _find_latest_benchmark(reports_dir)
+    if triage_reports is None:
+        triage_reports = _find_latest_triage_reports(reports_dir)
     db_sum = _db_summary(records)
     generated_at = datetime.now().isoformat(timespec="seconds")
 
@@ -431,5 +440,38 @@ def generate_dashboard(
 
 
 if __name__ == "__main__":
-    out = generate_dashboard()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Generate triage dashboard HTML.")
+    parser.add_argument(
+        "--triage",
+        action="store_true",
+        help=(
+            "Call the Claude API to generate per-cluster triage reports. "
+            "Requires ANTHROPIC_API_KEY in the environment. "
+            "Saves results to reports/triage_reports_YYYYMMDD.json for reuse."
+        ),
+    )
+    args = parser.parse_args()
+
+    triage_reports: dict[str, Any] | None = None
+    if args.triage:
+        import anthropic
+        from feature_extractor import load_and_extract
+        from clusterer import cluster
+        from triage_agent import triage
+
+        print("Running triage pipeline (calls Claude API)…")
+        features = load_and_extract(_DEFAULT_DB)
+        clustered = cluster(features)
+        client = anthropic.Anthropic()
+        triage_reports = triage(clustered, client=client)
+
+        date_str = datetime.now().strftime("%Y%m%d")
+        save_path = _DEFAULT_REPORTS_DIR / f"triage_reports_{date_str}.json"
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        save_path.write_text(json.dumps(triage_reports, indent=2), encoding="utf-8")
+        print(f"Triage reports saved to {save_path}")
+
+    out = generate_dashboard(triage_reports=triage_reports)
     print(f"Dashboard written to {out}")
