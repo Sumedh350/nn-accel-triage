@@ -86,14 +86,16 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 14 complete — ground truth labels and eval metrics (benchmark/)
-  (111 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator)
-  benchmark/ground_truth.json: variant → {label, description} for all 5 RTL variants
-  benchmark/evaluator.py:
-    CLUSTER_TO_GT: maps cluster_label (clusterer output) → ground-truth label space
-    evaluate(clustered_features, reports, ground_truth_path) -> {per_label, overall_accuracy, mean_confidence, total_records}
-    Per-label precision/recall/F1 from scratch (no sklearn); mean_confidence from reports dict (high=1.0, medium=0.5, low=0.0)
-    Missing ground-truth variants skipped with warnings.warn (no KeyError)
-    format_report(metrics) -> human-readable table string
+Phase 4, Session 15 complete — benchmark runner, 342x speedup, 100% accuracy (116 tests passing)
+  (116 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner)
+  benchmark/benchmark_runner.py:
+    run_benchmark(db_path, ground_truth_path, client, append_to_db) -> result dict
+    MANUAL_SECONDS_PER_CLUSTER = 2700 (45 min: 5 read + 15 hypothesize + 20 verify + 5 document)
+    stage_times: {load, extract_features, cluster, triage, evaluate} via time.perf_counter()
+    speedup_factor = manual_baseline_seconds / total_ai_time
+    append_to_db=True writes {"record_type": "benchmark_run", ...} entry to regression_db.jsonl
+  reports/benchmark_20260707.json: total_ai_time=31.5s, speedup=342.6x, accuracy=1.000, confidence=1.000
+  triage_agent.py + debug_loop.py: _strip_fences() added — handles ```json fences some model versions return
+  feature_extractor.load_and_extract + benchmark_runner.load_regression_db: skip "record_type" meta-records
 Phase 3 COMPLETE — all triage engine components delivered
-Phase 4 IN PROGRESS — benchmark and eval metrics
+Phase 4 COMPLETE — benchmark and eval metrics delivered

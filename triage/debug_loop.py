@@ -18,6 +18,7 @@ from triage_agent import (
     _MODEL,
     _build_config_str,
     _build_rag_block,
+    _strip_fences,
 )
 
 
@@ -138,7 +139,7 @@ class DebugLoop:
                     system=PROMPTS["system"],
                     messages=messages,
                 )
-                raw_text = response.content[0].text
+                raw_text = _strip_fences(response.content[0].text)
                 report: dict[str, Any] = json.loads(raw_text)
                 report["affected_configs"] = list(affected_configs)
                 last_report = report

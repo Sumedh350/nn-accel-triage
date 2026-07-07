@@ -70,6 +70,10 @@ def load_and_extract(db_path: str | Path) -> list[dict]:
     with path.open() as fh:
         for line in fh:
             line = line.strip()
-            if line:
-                features.append(extract_features(json.loads(line)))
+            if not line:
+                continue
+            record = json.loads(line)
+            if "record_type" in record:
+                continue  # skip meta-records (e.g. benchmark_run entries)
+            features.append(extract_features(record))
     return features

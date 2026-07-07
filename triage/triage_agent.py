@@ -48,6 +48,16 @@ PROMPTS: dict[str, str] = {
 }
 
 _SKIP_LABELS: frozenset[str] = frozenset({"clean_pass"})
+
+
+def _strip_fences(text: str) -> str:
+    """Strip markdown code fences that some model versions add around JSON output."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        if text.endswith("```"):
+            text = text[:-3].rstrip()
+    return text
 _MODEL = "claude-sonnet-4-6"
 _MAX_TOKENS = 512
 
@@ -131,13 +141,13 @@ def _triage_cluster(
             system=PROMPTS["system"],
             messages=[{"role": "user", "content": user_msg}],
         )
-        report: dict[str, Any] = json.loads(response.content[0].text)
+        report: dict[str, Any] = json.loads(_strip_fences(response.content[0].text))
         report["affected_configs"] = affected_configs
         if rag_store is not None:
             for r in records:
                 rag_store.add(r, report)
         return report
-    except anthropic.AnthropicError as exc:
+    except (anthropic.AnthropicError, json.JSONDecodeError) as exc:
         return {
             "likely_cause": f"API error: {exc}",
             "confidence": "low",

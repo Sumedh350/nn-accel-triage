@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 4 — Benchmark & Eval Metrics
-## Current Step: Session 14 complete — ground truth labels and eval metrics (111 tests passing)
+## Current Step: Session 15 complete — benchmark runner, 342x speedup, 100% accuracy (116 tests passing)
 
 ## Completed
 - GitHub repo created
@@ -190,6 +190,23 @@
   - Perfect predictions, all-wrong, mixed (known P/R/F1 values), non-empty format_report, missing-variant skip
 - Total test suite: 111 tests (56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator), 0 failures
 
+## Session 15: COMPLETE
+- `benchmark/benchmark_runner.py` — end-to-end pipeline timer
+  - run_benchmark(): times 5 stages (load/extract_features/cluster/triage/evaluate) via time.perf_counter()
+  - Manual baseline: MANUAL_SECONDS_PER_CLUSTER=2700 (45 min × n_failure_clusters)
+  - speedup_factor = manual_baseline_seconds / total_ai_time
+  - append_to_db=True: appends {"record_type": "benchmark_run", ...} to regression_db.jsonl
+  - load_regression_db() skips "record_type" meta-records
+  - __main__: saves dated JSON to reports/
+- `benchmark/test_benchmark_runner.py` — 5 pytest tests, all mocked, all passing
+  - Tests: stage_times keys, speedup_factor > 1.0, eval_metrics keys, JSON-serializable, append_to_db writes valid line
+- `reports/benchmark_20260707.json` — real benchmark result (actual Claude API calls)
+  - total_ai_time=31.52s, manual_baseline=10800s (180 min), speedup_factor=342.6x
+  - overall_accuracy=1.000, mean_confidence=1.000 (27/27 records correct, all clusters high confidence)
+- Bug fixes: _strip_fences() in triage_agent.py + debug_loop.py (model wraps JSON in ```json fences);
+  feature_extractor.load_and_extract skips meta-records
+- Total test suite: 116 tests (111 prior + 5 benchmark runner), 0 failures
+
 ## Phase 2 Goals
 - [x] Implement failure feature extractor (triage/feature_extractor.py)
 - [x] Implement failure clusterer (triage/clusterer.py)
@@ -201,10 +218,10 @@
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
 
-## Phase 4 Goals — IN PROGRESS
+## Phase 4 Goals — COMPLETE
 - [x] Ground truth labels and eval metrics (benchmark/)
-- [ ] End-to-end benchmark runner
-- [ ] Benchmark results and comparison against manual triage
+- [x] End-to-end benchmark runner (benchmark/benchmark_runner.py)
+- [x] Benchmark results and comparison against manual triage (reports/benchmark_20260707.json: 342.6x speedup, 100% accuracy)
 
 ## Blockers / Open Questions
 - None

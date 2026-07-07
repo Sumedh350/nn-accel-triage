@@ -1,0 +1,50 @@
+{
+  "stage_times": {
+    "load": 0.00048171900562010705,
+    "extract_features": 3.087199729634449e-05,
+    "cluster": 0.06435950299783144,
+    "triage": 31.457653802004643,
+    "evaluate": 0.0007263439983944409
+  },
+  "total_ai_time": 31.52325573600683,
+  "manual_baseline_seconds": 10800.0,
+  "speedup_factor": 342.60420593752025,
+  "eval_metrics": {
+    "per_label": {
+      "accumulator_overflow": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "loop_boundary_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "no_fault": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 15
+      },
+      "reset_polarity_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "sign_extension_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      }
+    },
+    "overall_accuracy": 1.0,
+    "mean_confidence": 1.0,
+    "total_records": 27
+  },
+  "timestamp": "2026-07-07T13:00:44.198571+00:00"
+}
