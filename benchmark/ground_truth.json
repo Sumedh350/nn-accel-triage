@@ -7,16 +7,52 @@
     "label": "accumulator_overflow",
     "description": "Accumulator width narrowed from 32 to 16 bits; large partial sums overflow silently."
   },
+  "fault_acc_w24": {
+    "label": "accumulator_overflow",
+    "description": "Accumulator width narrowed from 32 to 24 bits; partial sums overflow at smaller magnitude."
+  },
+  "fault_acc_w20": {
+    "label": "accumulator_overflow",
+    "description": "Accumulator width narrowed from 32 to 20 bits; overflow occurs at even smaller partial sums."
+  },
   "fault_wrong_sign": {
     "label": "sign_extension_error",
     "description": "Weight register cast from signed to unsigned; negative weights zero-extend instead of sign-extend."
+  },
+  "fault_b_unsigned": {
+    "label": "sign_extension_error",
+    "description": "B_reg loses signed qualifier; negative B values zero-extend instead of sign-extend."
   },
   "fault_off_by_one": {
     "label": "loop_boundary_error",
     "description": "Outer-product loop terminates at N-2 instead of N-1; last column of partial sums never accumulated."
   },
+  "fault_loop_over": {
+    "label": "loop_boundary_error",
+    "description": "COMPUTE spatial loop runs N+1 times (i <= N); OOB write causes row 0 to accumulate an extra partial product."
+  },
+  "fault_subtract": {
+    "label": "arithmetic_error",
+    "description": "Accumulator subtracts partial products instead of adding; output is negated sum."
+  },
   "fault_reset": {
     "label": "reset_polarity_error",
     "description": "Reset polarity inverted (active-high instead of active-low); design never resets, producing stale output."
+  },
+  "fault_quant_reset": {
+    "label": "reset_polarity_error",
+    "description": "quant_unit reset polarity inverted; unit always held in reset, outputs all zeros."
+  },
+  "fault_quant_shift_fixed": {
+    "label": "shift_error",
+    "description": "Per-channel shift replaced by fixed right-shift of 1; per-channel scale calibration lost."
+  },
+  "fault_quant_no_clamp": {
+    "label": "saturation_error",
+    "description": "INT8 saturation clamp removed; out-of-range values wrap around instead of saturating."
+  },
+  "fault_quant_wrong_sign_zp": {
+    "label": "zero_point_error",
+    "description": "zero_pt added as unsigned instead of signed; negative zero-points treated as large positive offsets."
   }
 }

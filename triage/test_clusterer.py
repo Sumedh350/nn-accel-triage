@@ -155,6 +155,7 @@ def test_all_real_records_labeled():
     assert counts["overflow_fault"] >= 3
     assert counts["off_by_one"] >= 3
     assert counts["sign_error"] >= 3
+    assert counts["quant_error"] >= 3
 
 
 # ---------------------------------------------------------------------------

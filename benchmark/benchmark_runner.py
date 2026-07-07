@@ -18,8 +18,10 @@ Pipeline stages timed:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -47,6 +49,27 @@ _DEFAULT_DB = _ROOT / "regression_db.jsonl"
 _DEFAULT_GT = Path(__file__).parent / "ground_truth.json"
 
 
+def _rule_based_triage(clustered: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Build triage reports from cluster labels without calling the LLM."""
+    cluster_configs: dict[str, list[str]] = defaultdict(list)
+    for feat in clustered:
+        label = feat.get("cluster_label", "uncategorized")
+        if label in ("clean_pass",):
+            continue
+        cfg = feat.get("config", {})
+        cfg_str = f"{feat.get('dut', '?')}/N={cfg.get('n', '?')}"
+        cluster_configs[label].append(cfg_str)
+    return {
+        label: {
+            "likely_cause": f"Rule-based cluster '{label}' — no LLM analysis",
+            "confidence": "rule-based",
+            "recommended_debug_steps": [],
+            "affected_configs": sorted(set(configs)),
+        }
+        for label, configs in cluster_configs.items()
+    }
+
+
 def load_regression_db(db_path: Path | str) -> list[dict[str, Any]]:
     """Read all JSON records from a JSONL file."""
     records: list[dict[str, Any]] = []
@@ -66,6 +89,7 @@ def run_benchmark(
     ground_truth_path: Path | str = _DEFAULT_GT,
     client: anthropic.Anthropic | None = None,
     append_to_db: bool = False,
+    no_llm: bool = False,
 ) -> dict[str, Any]:
     """Run the full triage pipeline and record wall-clock time per stage.
 
@@ -74,6 +98,8 @@ def run_benchmark(
         ground_truth_path: path to benchmark/ground_truth.json
         client:            Anthropic client; created automatically if None
         append_to_db:      when True, appends a benchmark_run entry to db_path
+        no_llm:            when True, skips Claude API call and uses cluster
+                           labels directly as the triage result
 
     Returns:
         {
@@ -83,6 +109,7 @@ def run_benchmark(
             "speedup_factor":          float,
             "eval_metrics":            dict from evaluator.evaluate(),
             "timestamp":               ISO-8601 string,
+            "mode":                    "no_llm" | "llm",
         }
     """
     t_total_start = time.perf_counter()
@@ -101,7 +128,10 @@ def run_benchmark(
     stage_times["cluster"] = time.perf_counter() - t0
 
     t0 = time.perf_counter()
-    reports = triage(clustered, client=client)
+    if no_llm:
+        reports = _rule_based_triage(clustered)
+    else:
+        reports = triage(clustered, client=client)
     stage_times["triage"] = time.perf_counter() - t0
 
     t0 = time.perf_counter()
@@ -124,6 +154,7 @@ def run_benchmark(
         "speedup_factor": speedup_factor,
         "eval_metrics": eval_metrics,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "no_llm" if no_llm else "llm",
     }
 
     if append_to_db:
@@ -141,42 +172,101 @@ def run_benchmark(
     return result
 
 
+def _print_result(result: dict[str, Any], label: str) -> None:
+    from benchmark.evaluator import format_report
+
+    print(f"\n--- {label} ---")
+    print(f"Total time:       {result['total_ai_time']:.2f}s")
+    print(
+        f"Manual baseline:  {result['manual_baseline_seconds']:.0f}s"
+        f" ({result['manual_baseline_seconds'] / 60:.0f} min)"
+    )
+    print(f"Speedup factor:   {result['speedup_factor']:.1f}x")
+    print("\nStage times:")
+    for stage, t in result["stage_times"].items():
+        print(f"  {stage:<20} {t:.4f}s")
+    print()
+    print(format_report(result["eval_metrics"]))
+
+
+def _comparison_table(rb: dict[str, Any], llm: dict[str, Any] | None) -> str:
+    """Return a side-by-side comparison of rule-based vs LLM-augmented metrics."""
+    rb_acc = rb["eval_metrics"]["overall_accuracy"]
+    rb_conf = rb["eval_metrics"]["mean_confidence"]
+    rb_spd = rb["speedup_factor"]
+    lines = [
+        f"\n{'Mode':<20} {'Accuracy':>10} {'Mean Conf':>10} {'Speedup':>10}",
+        "-" * 54,
+        f"{'rule-based':<20} {rb_acc:>10.3f} {rb_conf:>10.3f} {rb_spd:>9.1f}x",
+    ]
+    if llm is not None:
+        llm_acc = llm["eval_metrics"]["overall_accuracy"]
+        llm_conf = llm["eval_metrics"]["mean_confidence"]
+        llm_spd = llm["speedup_factor"]
+        lines.append(
+            f"{'llm-augmented':<20} {llm_acc:>10.3f} {llm_conf:>10.3f} {llm_spd:>9.1f}x"
+        )
+        delta_acc = llm_acc - rb_acc
+        lines.append("-" * 54)
+        lines.append(f"  LLM delta accuracy: {delta_acc:+.3f}")
+    else:
+        lines.append(f"{'llm-augmented':<20} {'(skipped — ANTHROPIC_API_KEY not set)':>34}")
+    return "\n".join(lines)
+
+
 if __name__ == "__main__":
     import argparse
-
-    from benchmark.evaluator import format_report
 
     parser = argparse.ArgumentParser(description="Run triage pipeline benchmark")
     parser.add_argument("--db", default=str(_DEFAULT_DB), help="regression_db.jsonl path")
     parser.add_argument("--gt", default=str(_DEFAULT_GT), help="ground_truth.json path")
     parser.add_argument("--out", default=None, help="Output JSON path (default: reports/benchmark_YYYYMMDD.json)")
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Skip Claude API call; use cluster labels as triage result and compare vs LLM if key available",
+    )
     args = parser.parse_args()
 
-    result = run_benchmark(
-        db_path=args.db,
-        ground_truth_path=args.gt,
-        append_to_db=True,
-    )
+    if args.no_llm:
+        rb_result = run_benchmark(
+            db_path=args.db,
+            ground_truth_path=args.gt,
+            append_to_db=False,
+            no_llm=True,
+        )
+        _print_result(rb_result, "Rule-based (no LLM)")
 
-    print(f"\nBenchmark completed at {result['timestamp']}")
-    print(f"Total AI time:    {result['total_ai_time']:.2f}s")
-    print(
-        f"Manual baseline:  {result['manual_baseline_seconds']:.0f}s"
-        f" ({result['manual_baseline_seconds'] / 60:.0f} min)"
-    )
-    print(f"Speedup factor:   {result['speedup_factor']:.1f}x\n")
-    print("Stage times:")
-    for stage, t in result["stage_times"].items():
-        print(f"  {stage:<20} {t:.4f}s")
-    print()
-    print(format_report(result["eval_metrics"]))
+        llm_result: dict[str, Any] | None = None
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            print("\nANTHROPIC_API_KEY found — running LLM pipeline for comparison...")
+            llm_result = run_benchmark(
+                db_path=args.db,
+                ground_truth_path=args.gt,
+                append_to_db=True,
+                no_llm=False,
+            )
+            _print_result(llm_result, "LLM-augmented")
+        else:
+            print("\nANTHROPIC_API_KEY not set — skipping LLM comparison run.")
+
+        print(_comparison_table(rb_result, llm_result))
+        result = rb_result
+    else:
+        result = run_benchmark(
+            db_path=args.db,
+            ground_truth_path=args.gt,
+            append_to_db=True,
+        )
+        _print_result(result, "LLM-augmented")
 
     out_path = args.out
     if out_path is None:
         reports_dir = _ROOT / "reports"
         reports_dir.mkdir(exist_ok=True)
         date_str = datetime.now().strftime("%Y%m%d")
-        out_path = str(reports_dir / f"benchmark_{date_str}.json")
+        suffix = "_no_llm" if args.no_llm else ""
+        out_path = str(reports_dir / f"benchmark_{date_str}{suffix}.json")
 
     Path(out_path).write_text(json.dumps(result, indent=2))
     print(f"\nResult saved to {out_path}")

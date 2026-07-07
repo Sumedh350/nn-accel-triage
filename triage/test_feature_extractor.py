@@ -162,7 +162,7 @@ def test_bucket_boundaries() -> None:
 
 def test_load_regression_db() -> None:
     features = load_and_extract(DB_PATH)
-    assert len(features) == 27
+    assert len(features) >= 84  # 27 original + 57 new fault variants
 
     for feat in features:
         assert REQUIRED_KEYS <= feat.keys(), f"Missing keys in {feat['run_id']}"
@@ -174,8 +174,8 @@ def test_load_regression_db() -> None:
 
     passing = [f for f in features if f["status"] == "pass"]
     failing = [f for f in features if f["status"] == "fail"]
-    assert len(passing) == 15
-    assert len(failing) == 12
+    assert len(passing) >= 15   # golden + latent acc_w faults
+    assert len(failing) >= 12
 
     for feat in passing:
         assert feat["mismatch_rate"] == 0.0

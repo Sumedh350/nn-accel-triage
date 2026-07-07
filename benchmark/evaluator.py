@@ -19,6 +19,11 @@ CLUSTER_TO_GT: dict[str, str] = {
     "sign_error":     "sign_extension_error",
     "off_by_one":     "loop_boundary_error",
     "reset_fault":    "reset_polarity_error",
+    "quant_error":    "quant_error",
+    "arithmetic_error": "arithmetic_error",
+    "shift_error":    "shift_error",
+    "saturation_error": "saturation_error",
+    "zero_point_error": "zero_point_error",
     "uncategorized":  "unknown",
 }
 

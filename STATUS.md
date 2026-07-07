@@ -1,7 +1,7 @@
 # Project Status
 
 ## Current Phase: Phase 4 — Benchmark & Eval Metrics
-## Current Step: Session 17 complete — Docker, README, one-command reproduce, 120 tests passing
+## Current Step: Session 18 complete — 13 fault variants, --no-llm baseline (72.7% vs 100% LLM), 120 tests passing
 
 ## Completed
 - GitHub repo created
@@ -266,12 +266,52 @@
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
 
+## Session 18: COMPLETE
+- `scripts/generate_faults.py` — programmatic RTL fault generator
+  - Reads mac_array.sv and quant_unit.sv; applies one targeted string substitution per fault
+  - Asserts exactly one occurrence of old_str; prints unified diff confirming one hunk changed
+  - 5 new mac_array faults: acc_w24, acc_w20, loop_over, subtract, b_unsigned
+  - 4 new quant_unit faults: reset, shift_fixed, no_clamp, wrong_sign_zp
+  - rtl/faults/ now has 13 files (4 original + 9 new)
+- `benchmark/benchmark_runner.py` — added `--no-llm` flag
+  - `_rule_based_triage(clustered)`: builds mock reports from cluster labels, confidence="rule-based"
+  - `run_benchmark(..., no_llm=True)`: replaces Claude API call with rule-based triage
+  - CLI `--no-llm`: runs rule-based, then attempts LLM if ANTHROPIC_API_KEY set, prints comparison table
+  - Rule-based accuracy: 72.7%; LLM-augmented: 100%; LLM delta: +27.3%
+- `scripts/gen_initial_regression.py` — extended with 9 new software fault models
+  - `_mac_fault_acc_overflow_w(a, b, acc_w)`: generic narrow-accumulator model (24-bit, 20-bit)
+  - `_mac_fault_loop_over`: N+1 spatial loop iteration, row 0 receives extra outer product
+  - `_mac_fault_subtract`, `_mac_fault_b_unsigned`: arithmetic-op and sign-extension faults
+  - `_quant_fault_reset/shift_fixed/no_clamp/wrong_sign_zp`: four quant_unit fault models
+  - `_gen_constrained_quant_vector`: acc ±150, scale 1-100, shift=6 — keeps outputs near INT8 boundary so faults are observable
+  - `run_quant_faults()`: new function; seeds [100,101,102]; golden + 4 quant fault variants per seed
+  - Note: fault_acc_w24/20 are latent for N=4 INT8 (max acc 64,516 < 2^20); stored as "pass" records
+- `benchmark/ground_truth.json` — 9 new variant entries (accumulator_overflow ×2, sign_extension_error, loop_boundary_error, arithmetic_error, reset_polarity_error, shift_error, saturation_error, zero_point_error)
+- `triage/clusterer.py` — two rule extensions
+  - `off_by_one`: broadened from `mismatch_rate >= 0.999` to `mismatch_rate > 0.0` for medium-error boundary faults (covers partial-row spatial OOB write in loop_over)
+  - `quant_error`: new label for quant_unit failures with small errors (shift, clamp, zero_pt)
+- `benchmark/evaluator.py` — added `quant_error` to CLUSTER_TO_GT
+- Total test suite: 120 tests (unchanged), 0 failures
+
+## Phase 2 Goals
+- [x] Implement failure feature extractor (triage/feature_extractor.py)
+- [x] Implement failure clusterer (triage/clusterer.py)
+- [x] Implement triage agent (triage/triage_agent.py): Claude API, per-cluster structured reports
+- [ ] Extend CocoTB testbench to append live entries to regression_db.jsonl during simulation
+- [ ] Add Makefile targets for fault-variant Verilator builds (per-fault sim_build dirs)
+
+## Phase 3 Goals — COMPLETE
+- [x] RAG store for historical failures (triage/rag_store.py)
+- [x] Multi-turn agentic debug loop (triage/debug_loop.py)
+
 ## Phase 4 Goals — COMPLETE
 - [x] Ground truth labels and eval metrics (benchmark/)
 - [x] End-to-end benchmark runner (benchmark/benchmark_runner.py)
 - [x] Benchmark results and comparison against manual triage (reports/benchmark_20260707.json: 342.6x speedup, 100% accuracy)
 - [x] Triage dashboard (dashboard/dashboard.py → reports/dashboard.html)
 - [x] Docker + README + one-command reproduce (docker/, README.md, requirements.txt, pytest.ini)
+- [x] Programmatic fault generator (scripts/generate_faults.py: 9 new RTL variants)
+- [x] Rule-based-only benchmark baseline (--no-llm: 72.7% accuracy vs 100% LLM)
 
 ## Blockers / Open Questions
 - None

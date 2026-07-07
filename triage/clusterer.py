@@ -29,8 +29,23 @@ def assign_rule_label(feat: dict[str, Any]) -> str:
         and not feat["has_reset_symptom"]
     ):
         return "sign_error"
-    if feat["error_magnitude_bucket"] == "medium" and feat["mismatch_rate"] >= 0.999:
+    # Medium-error boundary bugs: includes full-mismatch (loop terminates early)
+    # and partial-mismatch (OOB spatial write affects one row).
+    if (
+        feat["error_magnitude_bucket"] == "medium"
+        and feat["mismatch_rate"] > 0.0
+        and not feat["has_overflow_symptom"]
+        and not feat["has_reset_symptom"]
+    ):
         return "off_by_one"
+    # quant_unit-specific faults: shift, clamp, or zero-point errors all produce
+    # small INT8-range mismatches with no overflow or reset symptom.
+    if (
+        feat["dut"] == "quant_unit"
+        and feat["status"] == "fail"
+        and feat["error_magnitude_bucket"] == "small"
+    ):
+        return "quant_error"
     if feat["status"] == "pass":
         return "clean_pass"
     return "uncategorized"

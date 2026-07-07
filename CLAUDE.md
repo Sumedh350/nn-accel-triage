@@ -86,14 +86,13 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 17 complete — Docker, README, one-command reproduce, 120 tests passing
+Phase 4, Session 18 complete — 13 fault variants, --no-llm baseline (72.7% vs 100% LLM), 120 tests passing
   (120 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard)
-  README.md: full project README with badges, ASCII pipeline diagram, quick-start, results table, citation
-  docker/Dockerfile: ubuntu:22.04, Python 3.10, Verilator 5.x from source, Node.js 20
-  docker/run_pipeline.sh: 5-stage pipeline script (stages 1-3,5 run without API key; stage 4 skips if unset)
-  docker/docker-compose.yml: passes ANTHROPIC_API_KEY, mounts reports/ as host volume
-  requirements.txt: anthropic, numpy, scikit-learn, cocotb, pytest with minimum versions
-  pytest.ini: pythonpath=. so pytest works from project root without PYTHONPATH override
-  One-command reproduce: ANTHROPIC_API_KEY=... docker compose -f docker/docker-compose.yml run --rm nn-accel-triage
+  scripts/generate_faults.py: programmatic fault generator; 9 new RTL variants from mac_array.sv and quant_unit.sv
+  rtl/faults/: 13 total fault files (4 original + 9 new); each is a single targeted substitution
+  benchmark_runner.py --no-llm: skips Claude API, uses cluster labels directly, prints rule-based vs LLM comparison table
+  Rule-based baseline: 72.7% accuracy, mean_confidence=0.000 (no LLM); LLM-augmented: 100% accuracy
+  New clusterer labels: quant_error (quant_unit small-error faults); off_by_one extended to partial-mismatch boundary errors
+  fault_acc_w24/20 are LATENT for N=4 INT8 — mathematically undetectable (max acc 64516 < 2^20); show as pass in DB
 Phase 3 COMPLETE — all triage engine components delivered
 Phase 4 COMPLETE — benchmark, eval metrics, triage dashboard, and reproducibility packaging delivered
