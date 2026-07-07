@@ -211,14 +211,22 @@
 - `dashboard/dashboard.py` — static HTML dashboard generator
   - generate_dashboard(db_path, reports_dir, triage_reports=None, output_path) → Path
   - Reads regression_db.jsonl (feature extraction + clustering, deterministic) and latest benchmark_*.json
+  - Auto-loads latest reports/triage_reports_*.json when triage_reports=None
   - Sections: header badges (speedup/accuracy/confidence), benchmark timing chart, cluster summary table,
-    per-cluster triage reports (optional; placeholder when not provided), regression DB summary
+    per-cluster triage reports (fully populated), regression DB summary
   - Timing bars use log₁₀(time+0.001) scale — all 5 stages visible despite triage dominating (31.5 s)
   - Pure Python stdlib + inline CSS; single self-contained HTML file, no JS libraries
+  - CLI: python -m dashboard.dashboard [--triage]
+    --triage: calls Claude API, saves reports/triage_reports_YYYYMMDD.json for reuse
   - `__init__.py` makes dashboard/ a proper package (same pattern as benchmark/)
 - `dashboard/test_dashboard.py` — 4 pytest tests, all passing
   - test_generates_without_errors, test_valid_html, test_cluster_labels_appear, test_speedup_appears
-- `reports/dashboard.html` — generated static HTML dashboard (committed for reference)
+- `reports/dashboard.html` — fully populated static HTML dashboard
+- `reports/triage_reports_20260707.json` — cached Claude API results (4 failure clusters, all HIGH confidence)
+  - overflow_fault: accumulator declared 16-bit instead of required 17+ bits
+  - sign_error: missing $signed() / sign-extension widening INT8 to wider datapath
+  - off_by_one: loop bound < vs <= in MAC accumulation FSM
+  - reset_fault: accumulator registers not cleared on reset
 - Total test suite: 120 tests (116 prior + 4 dashboard), 0 failures
 
 ## Phase 2 Goals

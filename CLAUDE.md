@@ -91,10 +91,14 @@ Phase 4, Session 16 complete — triage dashboard, 120 tests passing
   dashboard/dashboard.py:
     generate_dashboard(db_path, reports_dir, triage_reports=None, output_path) -> Path
     Sections: header badges, benchmark timing chart (log₁₀ scale), cluster summary table,
-              per-cluster triage reports (optional), regression DB summary
-    Reads: regression_db.jsonl + reports/benchmark_*.json (latest)
+              per-cluster triage reports (auto-loaded or generated), regression DB summary
+    Reads: regression_db.jsonl + reports/benchmark_*.json + reports/triage_reports_*.json (all latest)
     Output: reports/dashboard.html (self-contained, no JS libraries)
-  reports/dashboard.html: generated static HTML dashboard
+    CLI: python -m dashboard.dashboard [--triage]
+      --triage: calls Claude API per failure cluster, saves reports/triage_reports_YYYYMMDD.json
+      (no flag): auto-loads saved triage_reports_*.json if present, skips API
+  reports/dashboard.html: generated static HTML dashboard (triage section fully populated)
+  reports/triage_reports_20260707.json: cached Claude API triage reports (4 clusters, all HIGH confidence)
   Timing bars use log₁₀(time+0.001) — triage (31.5 s) dominates, other stages (<0.1 s) still visible
 Phase 3 COMPLETE — all triage engine components delivered
 Phase 4 COMPLETE — benchmark, eval metrics, and triage dashboard delivered
