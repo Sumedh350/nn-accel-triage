@@ -322,6 +322,23 @@
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
 
+## Session 21: COMPLETE
+- `triage/triage_agent.py` — three improvements
+  - Hardcoded `_LATENT_FAULT_REPORT`: HIGH-confidence report returned directly for `latent_fault` cluster
+    without calling the Claude API; root cause is structurally known (pass records from undetectable faults)
+  - Adaptive `max_tokens`: `_MAX_TOKENS_LARGE = 1024` for clusters with >10 records; `_MAX_TOKENS_DEFAULT = 512`
+    for smaller clusters — prevents JSON truncation on the 33-record latent_fault cluster
+  - `PROMPTS["label_hints"]` dict: per-label extra context injected into user message before API call;
+    `sign_error` hint tells LLM to inspect both A_reg and B_reg, not just one operand
+- `triage/debug_loop.py` — updated import `_MAX_TOKENS` → `_MAX_TOKENS_DEFAULT` (renamed constant)
+- `reports/benchmark_final.json` — fresh `--no-llm` benchmark: 96.5% accuracy, 255 records, 9 fault categories
+  - Manual baseline: 405 min (9 failure clusters × 45 min); speedup 269,370× (rule-based), 293× (LLM)
+- `reports/dashboard.html` — regenerated with live Claude API (`--triage` flag)
+  - Header badge: Accuracy 96%, Speedup 269370×, Confidence 0.00 (badge reflects --no-llm benchmark)
+  - All 9 failure clusters show HIGH confidence triage reports
+  - Regression DB summary: 255 records, 120 pass (87 golden + 33 latent faults), 135 fail
+- Total test suite: 131 tests, 0 failures (unchanged from Session 20)
+
 ## Session 20: COMPLETE
 - `triage/feature_extractor.py` — added `has_subtract_symptom` feature
   - True when `mismatch_details` exists and `first_mismatch.actual == -first_mismatch.expected`

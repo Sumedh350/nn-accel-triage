@@ -86,8 +86,16 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 20 complete — clusterer improvements: 96.5% accuracy on 255 records, 9 fault categories
+Phase 4, Session 21 complete — final dashboard: 96.5% accuracy, latent fault detection, all 9 clusters HIGH confidence
   (131 pytest tests pass: 56 reference model + 9 feature extractor + 22 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+  triage_agent.py: hardcoded HIGH-confidence latent_fault report (structurally known root cause, no API call)
+  triage_agent.py: adaptive max_tokens — 1024 for clusters >10 records, 512 otherwise (prevents truncation)
+  triage_agent.py: PROMPTS["label_hints"] dict — sign_error hint tells LLM to inspect both A_reg and B_reg
+  debug_loop.py: updated import _MAX_TOKENS → _MAX_TOKENS_DEFAULT
+  reports/benchmark_final.json: fresh --no-llm run: 96.5% accuracy, 255 records, 9 fault categories
+  reports/dashboard.html: badge shows Accuracy 96%; all 9 triage clusters HIGH confidence
+  Dashboard summary: 120 pass (87 golden + 33 latent faults), 135 fail (detectable faults)
+Session 20 complete — clusterer improvements: 96.5% accuracy on 255 records, 9 fault categories
   triage/feature_extractor.py: added has_subtract_symptom flag (actual == -expected at first mismatch)
   triage/clusterer.py: 5 new/split labels replacing quant_error and sign_error catch-all:
     latent_fault: status==pass AND variant!=golden (catches acc_w24/acc_w20 + latent quant faults)
@@ -96,8 +104,7 @@ Phase 4, Session 20 complete — clusterer improvements: 96.5% accuracy on 255 r
     zero_point_error: quant_unit fail, small bucket, mismatch_rate <= 0.5 (partial-channel zp error)
     shift_error: quant_unit fail, small bucket fallthrough (fixed-shift, all channels affected)
   benchmark/evaluator.py: added latent_fault → accumulator_overflow to CLUSTER_TO_GT
-  Rule-based accuracy: 96.5% (246/255) — up from 71.8%; 9 still wrong (latent quant pass-records, undetectable)
-  LLM-augmented accuracy unchanged at 96.5% (accuracy depends on cluster labels, not LLM text)
+  Rule-based accuracy: 96.5% (246/255); 9 still wrong (latent quant pass-records, undetectable)
 Session 19 complete — VCD waveform parser, academic abstract, 123 tests passing
   triage/vcd_parser.py: stdlib-only VCD parser; extracts first_divergence_cycle, total_cycles, diverging_signals
   triage/feature_extractor.py: optional vcd_path param adds VCD features to feature dict (backward compatible)
