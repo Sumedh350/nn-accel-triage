@@ -14,7 +14,7 @@ import anthropic
 from rag_store import RAGStore
 from triage_agent import (
     PROMPTS,
-    _MAX_TOKENS,
+    _MAX_TOKENS_DEFAULT,
     _MODEL,
     _build_config_str,
     _build_rag_block,
@@ -135,7 +135,7 @@ class DebugLoop:
             try:
                 response = client.messages.create(
                     model=_MODEL,
-                    max_tokens=_MAX_TOKENS,
+                    max_tokens=_MAX_TOKENS_DEFAULT,
                     system=PROMPTS["system"],
                     messages=messages,
                 )

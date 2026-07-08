@@ -1,0 +1,117 @@
+{
+  "overflow_fault": {
+    "likely_cause": "The accumulator register lacks sufficient bit-width to hold the full INT8 dot-product result for N=4, causing a bit overflow that wraps or saturates incorrectly and produces a fixed max error of 65536 (2^16), indicating the accumulator is 16 bits wide when it should be at least 24 bits to prevent overflow of accumulated INT8 products.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL accumulator register declaration for the INT8 MAC unit and verify its width is at least ceil(log2(N * 127 * 127)) + 1 bits; for N=4 this requires >18 bits, so a 16-bit accumulator will overflow",
+      "Add a simulation assertion on the accumulator output to flag when the pre-saturation value exceeds the register width, and confirm the assertion fires at exactly the failing seeds",
+      "Check the accumulator width parameter or localParam in the RTL (e.g., ACC_WIDTH) to confirm it is set to 16 and increase it to at least 24 bits, then re-run the failing seeds to verify max_err drops to zero"
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_acc_overflow"
+    ]
+  },
+  "sign_error": {
+    "likely_cause": "The B (activation) register operand is missing the 'signed' qualifier in the RTL multiplier, causing it to be treated as unsigned instead of signed for int8 inputs, which produces wrong-sign dot-product accumulation results whenever activations have negative values.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL declaration of B_reg and the multiply operand feeding the MAC unit \u2014 verify it is declared as 'signed' (e.g., 'logic signed [7:0] B_reg') and that sign-extension is applied before the multiply, not just A_reg.",
+      "Add a directed simulation with a single negative B value (e.g., -1) and a positive A weight and confirm the partial product sign matches the expected two's-complement result; compare DUT vs reference to isolate whether the error flips on negative B inputs.",
+      "Search the RTL for all cast or concatenation operations on B_reg going into the multiplier and confirm no accidental '$unsigned()' cast or zero-extension is stripping the sign bit before multiplication."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_b_unsigned",
+      "mac_array/N=4/INT8/AW32/fault_wrong_sign"
+    ]
+  },
+  "off_by_one": {
+    "likely_cause": "The loop iteration counter or index boundary in the MAC/accumulation datapath uses a '<' instead of '<=' comparison (or vice versa), causing the hardware to process N-1 or N+1 elements instead of N, resulting in 100% mismatch when all outputs are affected (fault_off_by_one) and 25% mismatch (1 of 4 outputs) when only the final iteration overruns (fault_loop_over).",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL loop-bound comparator for the accumulation/dot-product engine: check whether the terminal count is coded as 'i < N', 'i <= N-1', or 'i <= N', and verify it matches the golden reference iteration count for N=4.",
+      "Simulate with waveform capture enabled for seed1/seed9/seed13 at N=4, and compare the number of multiply-accumulate cycles executed against the expected N cycles to confirm exactly one extra or missing iteration.",
+      "Review the index-to-address mapping and output write-back logic to confirm that the off-by-one in the loop counter also shifts which output element is written last, explaining why fault_loop_over corrupts exactly 1/4 outputs (mismatch=0.250)."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_loop_over",
+      "mac_array/N=4/INT8/AW32/fault_off_by_one"
+    ]
+  },
+  "reset_fault": {
+    "likely_cause": "Reset logic is not properly clearing accumulator or state registers \u2014 on reset assertion, datapath registers (accumulators for int8 and quantization accumulators for aw32) retain stale values, causing every output to mismatch the reference from the first cycle after reset.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL reset conditions for all accumulator and pipeline registers: verify that the synchronous/asynchronous reset branch explicitly assigns zero (or the correct initial value) rather than being omitted or gated by an enable signal that stays deasserted during reset.",
+      "Add waveform probes at the reset pin and accumulator/output registers; confirm that on the active reset edge all registers transition to 0 and hold until reset is deasserted, checking for any missing or inverted reset polarity.",
+      "Check whether the reset is being distributed correctly to both the main datapath (responsible for large max_err ~32k\u201337k in int8 tests) and the quantization sub-block (responsible for small max_err ~45\u2013128 in aw32/quant tests), as the two different error magnitudes suggest two independent register groups may both lack proper reset."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_reset",
+      "quant_unit/N=4/AW32/fault_quant_reset"
+    ]
+  },
+  "latent_fault": {
+    "likely_cause": "These records are pass results from fault variants where the injected bug is mathematically undetectable with current test vectors \u2014 e.g. an accumulator narrowed to 20\u201324 bits cannot overflow when 8-bit inputs with N=4 accumulation steps produce a maximum partial sum of 64,516 (< 2^20), and quant faults whose effect is fully masked by saturation clamping for these specific input magnitudes.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Increase N or input magnitude to exercise the fault \u2014 e.g. use larger random inputs or test with N=8/16 to push accumulator values above the narrowed width.",
+      "Add directed tests targeting accumulator boundary values (inputs chosen so the partial sum exactly reaches 2^(ACC_W-1)) to expose narrowed-accumulator faults; similarly add quant vectors that avoid saturation to expose shift/clamp/zp faults.",
+      "Consider formal verification for latent coverage gaps \u2014 bounded model checking can prove whether a fault is truly undetectable or merely untriggered by current stimuli."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_acc_w20",
+      "mac_array/N=4/INT8/AW32/fault_acc_w24",
+      "quant_unit/N=4/AW32/fault_quant_no_clamp",
+      "quant_unit/N=4/AW32/fault_quant_shift_fixed",
+      "quant_unit/N=4/AW32/fault_quant_wrong_sign_zp"
+    ]
+  },
+  "arithmetic_error": {
+    "likely_cause": "The subtraction operation is implemented as addition (or the operand sign is not negated), causing the RTL to produce A+B instead of A-B for all N=4 int8 compute paths, resulting in 100% mismatch with large absolute errors consistent with sign inversion of the subtrahend.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL arithmetic unit for the subtract opcode decode: verify that the control signal correctly inverts the second operand (or selects a subtractor) rather than passing it through to an adder unchanged.",
+      "Run a directed test with known values (e.g., A=1, B=1, expected=0) through the fault_subtract path and compare the actual RTL output to confirm A+B versus A-B behavior.",
+      "Check if the fault_subtract operation flag is correctly routed to the ALU negate/complement control input and that there is no stuck-at-zero or missing wire connection for that control signal in the N=4 int8 configuration."
+    ],
+    "affected_configs": [
+      "mac_array/N=4/INT8/AW32/fault_subtract"
+    ]
+  },
+  "saturation_error": {
+    "likely_cause": "The quantization output path is missing the saturation/clamping logic, allowing post-quantization values to wrap or overflow beyond the representable 8-bit signed/unsigned range instead of being clamped to [min, max], producing errors near 231-252 (close to 256 boundary).",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL quantization module for the presence and correct gating of the clamp/saturation logic; verify that the 'no_clamp' fault injection mode is actually disabling an existing clamp rather than exposing a missing one in the default path.",
+      "Check the bit-width truncation step after the scale/shift operation in the quant block\u2014confirm that overflow detection compares against the correct signed/unsigned bounds (e.g., -128/127 or 0/255) and that the saturate MUX is wired to the output register.",
+      "Run a directed test with inputs known to exceed the representable range and probe the pre-clamp accumulator value versus the output register in simulation to confirm values are wrapping (modulo 256) rather than saturating, pinpointing the missing clamp assignment."
+    ],
+    "affected_configs": [
+      "quant_unit/N=4/AW32/fault_quant_no_clamp"
+    ]
+  },
+  "shift_error": {
+    "likely_cause": "The fixed quantization shift value applied in the RTL is off by one or more bits, causing a consistent arithmetic right-shift error in the output scaling path that produces large, widespread mismatches proportional to the input magnitude.",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL register or parameter controlling the fixed shift amount in the quantization/scaling unit and compare it against the golden reference model's expected shift value.",
+      "Add waveform probes at the input and output of the shift operation for all mismatching test vectors to confirm the shift amount is incorrect and measure the exact bit-offset.",
+      "Check whether the fault injection mechanism (fault_quant_shift_fixed) is correctly toggling only the intended shift control bits and is not inadvertently affecting adjacent control signals or pipeline registers."
+    ],
+    "affected_configs": [
+      "quant_unit/N=4/AW32/fault_quant_shift_fixed"
+    ]
+  },
+  "zero_point_error": {
+    "likely_cause": "The zero-point value is being applied with the wrong sign in the quantization/dequantization datapath, causing an offset error of magnitude 2*ZP for affected output elements (e.g., subtraction where addition is required, or vice versa).",
+    "confidence": "high",
+    "recommended_debug_steps": [
+      "Inspect the RTL arithmetic unit handling zero-point adjustment and verify the sign of the ZP term matches the quantization spec (e.g., confirm 'x - zp' vs 'x + zp' polarity for both quantize and dequantize paths).",
+      "Compare the max_err values (~108\u2013217) against 2*zero_point for the test configurations to confirm the error magnitude is consistent with a sign inversion of the ZP offset.",
+      "Add a waveform probe or assertion on the ZP subtraction/addition node in the RTL during a failing seed to observe whether the RTL computes '+zp' when '-zp' (or vice versa) is expected."
+    ],
+    "affected_configs": [
+      "quant_unit/N=4/AW32/fault_quant_wrong_sign_zp"
+    ]
+  }
+}

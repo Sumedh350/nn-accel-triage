@@ -45,9 +45,39 @@ PROMPTS: dict[str, str] = {
         "\nPast similar failures (for reference only — do not copy blindly):\n"
         "{similar_block}\n"
     ),
+    # Per-label hints appended to the user message before sending to the LLM.
+    "label_hints": {
+        "sign_error": (
+            "Note: this cluster may contain faults on either the A (weight) or B (activation) "
+            "register operand — inspect both A_reg and B_reg for a missing 'signed' qualifier "
+            "or incorrect sign-extension, not just one of them."
+        ),
+    },
 }
 
 _SKIP_LABELS: frozenset[str] = frozenset({"clean_pass"})
+
+# Hardcoded report for latent_fault: root cause is structurally known (pass records
+# from fault variants whose injected bug is unobservable with current test stimuli).
+_LATENT_FAULT_REPORT: dict[str, Any] = {
+    "likely_cause": (
+        "These records are pass results from fault variants where the injected bug is "
+        "mathematically undetectable with current test vectors — e.g. an accumulator "
+        "narrowed to 20–24 bits cannot overflow when 8-bit inputs with N=4 accumulation "
+        "steps produce a maximum partial sum of 64,516 (< 2^20), and quant faults whose "
+        "effect is fully masked by saturation clamping for these specific input magnitudes."
+    ),
+    "confidence": "high",
+    "recommended_debug_steps": [
+        "Increase N or input magnitude to exercise the fault — e.g. use larger random "
+        "inputs or test with N=8/16 to push accumulator values above the narrowed width.",
+        "Add directed tests targeting accumulator boundary values (inputs chosen so the "
+        "partial sum exactly reaches 2^(ACC_W-1)) to expose narrowed-accumulator faults; "
+        "similarly add quant vectors that avoid saturation to expose shift/clamp/zp faults.",
+        "Consider formal verification for latent coverage gaps — bounded model checking "
+        "can prove whether a fault is truly undetectable or merely untriggered by current stimuli.",
+    ],
+}
 
 
 def _strip_fences(text: str) -> str:
@@ -59,7 +89,8 @@ def _strip_fences(text: str) -> str:
             text = text[:-3].rstrip()
     return text
 _MODEL = "claude-sonnet-4-6"
-_MAX_TOKENS = 512
+_MAX_TOKENS_DEFAULT = 512
+_MAX_TOKENS_LARGE = 1024   # used when a cluster has more than 10 records
 
 _DATA_TYPE_NAMES: dict[int, str] = {0: "INT8", 1: "INT16", 2: "FP16"}
 
@@ -129,15 +160,20 @@ def _triage_cluster(
         n_outliers=n_outliers,
     )
 
+    hint = PROMPTS["label_hints"].get(label, "")
+    if hint:
+        user_msg += f"\n\nHint: {hint}"
+
     if rag_store is not None:
         rag_block = _build_rag_block(records, rag_store)
         if rag_block:
             user_msg += PROMPTS["rag_context"].format(similar_block=rag_block)
 
+    max_tokens = _MAX_TOKENS_LARGE if len(records) > 10 else _MAX_TOKENS_DEFAULT
     try:
         response = client.messages.create(
             model=_MODEL,
-            max_tokens=_MAX_TOKENS,
+            max_tokens=max_tokens,
             system=PROMPTS["system"],
             messages=[{"role": "user", "content": user_msg}],
         )
@@ -185,6 +221,10 @@ def triage(
     result: dict[str, dict[str, Any]] = {}
     for label, records in groups.items():
         if label in _SKIP_LABELS:
+            continue
+        if label == "latent_fault":
+            affected = sorted({_build_config_str(r) for r in records})
+            result[label] = {**_LATENT_FAULT_REPORT, "affected_configs": affected}
             continue
         result[label] = _triage_cluster(label, records, client, rag_store=rag_store)
 
