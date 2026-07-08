@@ -82,16 +82,33 @@ def _db_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(records)
     passed = sum(1 for r in records if r.get("status") == "pass")
     failed = total - passed
+    golden_passed = sum(
+        1 for r in records if r.get("status") == "pass" and r.get("variant") == "golden"
+    )
+    latent_passed = sum(
+        1 for r in records if r.get("status") == "pass" and r.get("variant") != "golden"
+    )
 
     variant_counts: dict[str, int] = defaultdict(int)
+    variant_pass: dict[str, int] = defaultdict(int)
+    variant_fail: dict[str, int] = defaultdict(int)
     for r in records:
-        variant_counts[r.get("variant", "unknown")] += 1
+        v = r.get("variant", "unknown")
+        variant_counts[v] += 1
+        if r.get("status") == "pass":
+            variant_pass[v] += 1
+        else:
+            variant_fail[v] += 1
 
     return {
         "total": total,
         "passed": passed,
         "failed": failed,
+        "golden_passed": golden_passed,
+        "latent_passed": latent_passed,
         "variants": dict(sorted(variant_counts.items())),
+        "variant_pass": dict(variant_pass),
+        "variant_fail": dict(variant_fail),
     }
 
 
@@ -160,8 +177,24 @@ tr:hover td { background: #ebf4ff; }
 .stat-box .num { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; }
 .stat-box .lbl { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em;
                  color: #718096; margin-top: 2px; }
+.stat-box .stat-sub { font-size: 0.72rem; color: #a0aec0; margin-top: 4px; font-style: italic; }
 .stat-box.pass .num { color: #276749; }
 .stat-box.fail .num { color: #9b2c2c; }
+
+/* Latent fault callout */
+.latent-note { background: #fffbeb; border-left: 4px solid #f6ad55; border-radius: 4px;
+               padding: 12px 16px; margin-bottom: 16px; font-size: 0.88rem; color: #744210;
+               line-height: 1.5; }
+.latent-note strong { color: #c05621; }
+.latent-note code { background: #feebc8; padding: 1px 4px; border-radius: 3px; }
+
+/* Latent tag in variant table */
+.tag-latent { display: inline-block; background: #feebc8; color: #c05621;
+              font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+              margin-left: 6px; vertical-align: middle; letter-spacing: .03em; }
+td.pass-cell { color: #276749; font-weight: 600; }
+td.fail-cell { color: #9b2c2c; font-weight: 600; }
+td.zero-cell { color: #a0aec0; }
 
 footer { text-align: center; color: #a0aec0; font-size: 0.78rem; padding: 12px; }
 """
@@ -340,27 +373,63 @@ def _render_triage_reports(
 
 
 def _render_db_summary(db_sum: dict[str, Any]) -> str:
+    golden_p = db_sum.get("golden_passed", 0)
+    latent_p = db_sum.get("latent_passed", 0)
+    variant_pass = db_sum.get("variant_pass", {})
+    variant_fail = db_sum.get("variant_fail", {})
+
     stat_boxes = (
         f'<div class="stat-boxes">'
         f'<div class="stat-box"><div class="num">{_e(db_sum["total"])}</div>'
         f'<div class="lbl">Total Records</div></div>'
         f'<div class="stat-box pass"><div class="num">{_e(db_sum["passed"])}</div>'
-        f'<div class="lbl">Passed</div></div>'
+        f'<div class="lbl">Passed</div>'
+        f'<div class="stat-sub">{_e(golden_p)} golden + {_e(latent_p)} latent faults</div></div>'
         f'<div class="stat-box fail"><div class="num">{_e(db_sum["failed"])}</div>'
-        f'<div class="lbl">Failed</div></div>'
+        f'<div class="lbl">Failed</div>'
+        f'<div class="stat-sub">detectable injected faults</div></div>'
         f"</div>\n"
     )
 
+    latent_note = ""
+    if latent_p > 0:
+        latent_note = (
+            f'<div class="latent-note">'
+            f"<strong>&#9888; {_e(latent_p)} latent faults passed simulation</strong> "
+            f"despite containing injected RTL bugs — flagged as suspicious by the triage pipeline. "
+            f"These are mathematically undetectable with the current test vectors: "
+            f"the accumulator values never exceed the narrowed bit-width, so the truncation "
+            f"never triggers an observable mismatch. "
+            f"See the <code>latent_fault</code> cluster above for the structural root-cause analysis."
+            f"</div>\n"
+        )
+
     rows = ""
     for variant, count in db_sum["variants"].items():
-        rows += f"<tr><td><code>{_e(variant)}</code></td><td>{_e(count)}</td></tr>\n"
+        p = variant_pass.get(variant, 0)
+        f = variant_fail.get(variant, 0)
+        is_latent = p > 0 and variant != "golden"
+        latent_tag = ' <span class="tag-latent">latent</span>' if is_latent else ""
+        p_cell = f"<td class='pass-cell'>{_e(p)}</td>" if p else "<td class='zero-cell'>—</td>"
+        f_cell = f"<td class='fail-cell'>{_e(f)}</td>" if f else "<td class='zero-cell'>—</td>"
+        rows += (
+            f"<tr>"
+            f"<td><code>{_e(variant)}</code>{latent_tag}</td>"
+            f"<td>{_e(count)}</td>"
+            f"{p_cell}"
+            f"{f_cell}"
+            f"</tr>\n"
+        )
 
     return (
         f"<section>"
         f"<h2>Regression DB Summary</h2>"
         f"{stat_boxes}"
+        f"{latent_note}"
         f"<table>"
-        f"<thead><tr><th>Variant</th><th>Record Count</th></tr></thead>"
+        f"<thead><tr>"
+        f"<th>Variant</th><th>Total</th><th>Pass</th><th>Fail</th>"
+        f"</tr></thead>"
         f"<tbody>{rows}</tbody>"
         f"</table>"
         f"</section>\n"

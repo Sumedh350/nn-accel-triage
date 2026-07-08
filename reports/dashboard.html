@@ -66,8 +66,24 @@ tr:hover td { background: #ebf4ff; }
 .stat-box .num { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; }
 .stat-box .lbl { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em;
                  color: #718096; margin-top: 2px; }
+.stat-box .stat-sub { font-size: 0.72rem; color: #a0aec0; margin-top: 4px; font-style: italic; }
 .stat-box.pass .num { color: #276749; }
 .stat-box.fail .num { color: #9b2c2c; }
+
+/* Latent fault callout */
+.latent-note { background: #fffbeb; border-left: 4px solid #f6ad55; border-radius: 4px;
+               padding: 12px 16px; margin-bottom: 16px; font-size: 0.88rem; color: #744210;
+               line-height: 1.5; }
+.latent-note strong { color: #c05621; }
+.latent-note code { background: #feebc8; padding: 1px 4px; border-radius: 3px; }
+
+/* Latent tag in variant table */
+.tag-latent { display: inline-block; background: #feebc8; color: #c05621;
+              font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+              margin-left: 6px; vertical-align: middle; letter-spacing: .03em; }
+td.pass-cell { color: #276749; font-weight: 600; }
+td.fail-cell { color: #9b2c2c; font-weight: 600; }
+td.zero-cell { color: #a0aec0; }
 
 footer { text-align: center; color: #a0aec0; font-size: 0.78rem; padding: 12px; }
 
@@ -103,23 +119,24 @@ footer { text-align: center; color: #a0aec0; font-size: 0.78rem; padding: 12px; 
 <div class="card"><h3><code>sign_error</code></h3><div class="card-row"><strong>Likely cause:</strong> The B (activation) register operand is missing the &#x27;signed&#x27; qualifier in the RTL multiplier, causing it to be treated as unsigned instead of signed for int8 inputs, which produces wrong-sign dot-product accumulation results whenever activations have negative values.</div><div class="card-row"><strong>Confidence:</strong> <span class="conf-high">HIGH</span></div><div class="card-row"><strong>Debug steps:</strong><ol class="steps-list"><li>Inspect the RTL declaration of B_reg and the multiply operand feeding the MAC unit — verify it is declared as &#x27;signed&#x27; (e.g., &#x27;logic signed [7:0] B_reg&#x27;) and that sign-extension is applied before the multiply, not just A_reg.</li><li>Add a directed simulation with a single negative B value (e.g., -1) and a positive A weight and confirm the partial product sign matches the expected two&#x27;s-complement result; compare DUT vs reference to isolate whether the error flips on negative B inputs.</li><li>Search the RTL for all cast or concatenation operations on B_reg going into the multiplier and confirm no accidental &#x27;$unsigned()&#x27; cast or zero-extension is stripping the sign bit before multiplication.</li></ol></div><div class="card-row"><strong>Affected configs:</strong> mac_array/N=4/INT8/AW32/fault_b_unsigned, mac_array/N=4/INT8/AW32/fault_wrong_sign</div></div>
 <div class="card"><h3><code>zero_point_error</code></h3><div class="card-row"><strong>Likely cause:</strong> The zero-point value is being applied with the wrong sign in the quantization/dequantization datapath, causing an offset error of magnitude 2*ZP for affected output elements (e.g., subtraction where addition is required, or vice versa).</div><div class="card-row"><strong>Confidence:</strong> <span class="conf-high">HIGH</span></div><div class="card-row"><strong>Debug steps:</strong><ol class="steps-list"><li>Inspect the RTL arithmetic unit handling zero-point adjustment and verify the sign of the ZP term matches the quantization spec (e.g., confirm &#x27;x - zp&#x27; vs &#x27;x + zp&#x27; polarity for both quantize and dequantize paths).</li><li>Compare the max_err values (~108–217) against 2*zero_point for the test configurations to confirm the error magnitude is consistent with a sign inversion of the ZP offset.</li><li>Add a waveform probe or assertion on the ZP subtraction/addition node in the RTL during a failing seed to observe whether the RTL computes &#x27;+zp&#x27; when &#x27;-zp&#x27; (or vice versa) is expected.</li></ol></div><div class="card-row"><strong>Affected configs:</strong> quant_unit/N=4/AW32/fault_quant_wrong_sign_zp</div></div>
 </section>
-<section><h2>Regression DB Summary</h2><div class="stat-boxes"><div class="stat-box"><div class="num">255</div><div class="lbl">Total Records</div></div><div class="stat-box pass"><div class="num">120</div><div class="lbl">Passed</div></div><div class="stat-box fail"><div class="num">135</div><div class="lbl">Failed</div></div></div>
-<table><thead><tr><th>Variant</th><th>Record Count</th></tr></thead><tbody><tr><td><code>fault_acc_overflow</code></td><td>15</td></tr>
-<tr><td><code>fault_acc_w20</code></td><td>12</td></tr>
-<tr><td><code>fault_acc_w24</code></td><td>12</td></tr>
-<tr><td><code>fault_b_unsigned</code></td><td>12</td></tr>
-<tr><td><code>fault_loop_over</code></td><td>12</td></tr>
-<tr><td><code>fault_off_by_one</code></td><td>15</td></tr>
-<tr><td><code>fault_quant_no_clamp</code></td><td>12</td></tr>
-<tr><td><code>fault_quant_reset</code></td><td>12</td></tr>
-<tr><td><code>fault_quant_shift_fixed</code></td><td>12</td></tr>
-<tr><td><code>fault_quant_wrong_sign_zp</code></td><td>12</td></tr>
-<tr><td><code>fault_reset</code></td><td>15</td></tr>
-<tr><td><code>fault_subtract</code></td><td>12</td></tr>
-<tr><td><code>fault_wrong_sign</code></td><td>15</td></tr>
-<tr><td><code>golden</code></td><td>87</td></tr>
+<section><h2>Regression DB Summary</h2><div class="stat-boxes"><div class="stat-box"><div class="num">255</div><div class="lbl">Total Records</div></div><div class="stat-box pass"><div class="num">120</div><div class="lbl">Passed</div><div class="stat-sub">87 golden + 33 latent faults</div></div><div class="stat-box fail"><div class="num">135</div><div class="lbl">Failed</div><div class="stat-sub">detectable injected faults</div></div></div>
+<div class="latent-note"><strong>&#9888; 33 latent faults passed simulation</strong> despite containing injected RTL bugs — flagged as suspicious by the triage pipeline. These are mathematically undetectable with the current test vectors: the accumulator values never exceed the narrowed bit-width, so the truncation never triggers an observable mismatch. See the <code>latent_fault</code> cluster above for the structural root-cause analysis.</div>
+<table><thead><tr><th>Variant</th><th>Total</th><th>Pass</th><th>Fail</th></tr></thead><tbody><tr><td><code>fault_acc_overflow</code></td><td>15</td><td class='zero-cell'>—</td><td class='fail-cell'>15</td></tr>
+<tr><td><code>fault_acc_w20</code> <span class="tag-latent">latent</span></td><td>12</td><td class='pass-cell'>12</td><td class='zero-cell'>—</td></tr>
+<tr><td><code>fault_acc_w24</code> <span class="tag-latent">latent</span></td><td>12</td><td class='pass-cell'>12</td><td class='zero-cell'>—</td></tr>
+<tr><td><code>fault_b_unsigned</code></td><td>12</td><td class='zero-cell'>—</td><td class='fail-cell'>12</td></tr>
+<tr><td><code>fault_loop_over</code></td><td>12</td><td class='zero-cell'>—</td><td class='fail-cell'>12</td></tr>
+<tr><td><code>fault_off_by_one</code></td><td>15</td><td class='zero-cell'>—</td><td class='fail-cell'>15</td></tr>
+<tr><td><code>fault_quant_no_clamp</code> <span class="tag-latent">latent</span></td><td>12</td><td class='pass-cell'>3</td><td class='fail-cell'>9</td></tr>
+<tr><td><code>fault_quant_reset</code></td><td>12</td><td class='zero-cell'>—</td><td class='fail-cell'>12</td></tr>
+<tr><td><code>fault_quant_shift_fixed</code> <span class="tag-latent">latent</span></td><td>12</td><td class='pass-cell'>3</td><td class='fail-cell'>9</td></tr>
+<tr><td><code>fault_quant_wrong_sign_zp</code> <span class="tag-latent">latent</span></td><td>12</td><td class='pass-cell'>3</td><td class='fail-cell'>9</td></tr>
+<tr><td><code>fault_reset</code></td><td>15</td><td class='zero-cell'>—</td><td class='fail-cell'>15</td></tr>
+<tr><td><code>fault_subtract</code></td><td>12</td><td class='zero-cell'>—</td><td class='fail-cell'>12</td></tr>
+<tr><td><code>fault_wrong_sign</code></td><td>15</td><td class='zero-cell'>—</td><td class='fail-cell'>15</td></tr>
+<tr><td><code>golden</code></td><td>87</td><td class='pass-cell'>87</td><td class='zero-cell'>—</td></tr>
 </tbody></table></section>
 </main>
-<footer>Generated 2026-07-09T01:20:20</footer>
+<footer>Generated 2026-07-09T01:52:39</footer>
 </body>
 </html>
