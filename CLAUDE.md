@@ -86,15 +86,27 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 21 complete — final dashboard: 96.5% accuracy, latent fault detection, all 9 clusters HIGH confidence
-  (131 pytest tests pass: 56 reference model + 9 feature extractor + 22 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+Phase 4, Session 21 complete + dashboard explainability update — 131 tests passing, submission-ready
+  (131 pytest tests: 56 reference model + 9 feature extractor + 22 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+
+  Key numbers: 255 regression records, 13 fault variants, 9 fault categories, 96.5% classification accuracy
+  120 passed (87 golden + 33 latent faults), 135 failed (detectable injected faults)
+
+  Dashboard (reports/dashboard.html) — latest enhancements:
+    Regression DB Summary now shows latent fault breakdown dynamically from live DB records:
+      - Passed stat box sub-label: "87 golden + 33 latent faults" (computed, not hardcoded)
+      - Failed stat box sub-label: "detectable injected faults"
+      - Amber callout explaining what latent faults are, why they pass simulation, and pointer to latent_fault cluster
+      - Variant table has Pass / Fail columns; non-golden variants with passing records get "latent" badge
+    All 9 triage clusters show HIGH confidence reports
+    Speedup badge: 342.6× vs manual triage (31.5 s AI vs 180 min manual)
+    Accuracy badge: 96%
+
   triage_agent.py: hardcoded HIGH-confidence latent_fault report (structurally known root cause, no API call)
   triage_agent.py: adaptive max_tokens — 1024 for clusters >10 records, 512 otherwise (prevents truncation)
   triage_agent.py: PROMPTS["label_hints"] dict — sign_error hint tells LLM to inspect both A_reg and B_reg
   debug_loop.py: updated import _MAX_TOKENS → _MAX_TOKENS_DEFAULT
   reports/benchmark_final.json: fresh --no-llm run: 96.5% accuracy, 255 records, 9 fault categories
-  reports/dashboard.html: badge shows Accuracy 96%; all 9 triage clusters HIGH confidence
-  Dashboard summary: 120 pass (87 golden + 33 latent faults), 135 fail (detectable faults)
 Session 20 complete — clusterer improvements: 96.5% accuracy on 255 records, 9 fault categories
   triage/feature_extractor.py: added has_subtract_symptom flag (actual == -expected at first mismatch)
   triage/clusterer.py: 5 new/split labels replacing quant_error and sign_error catch-all:

@@ -1,7 +1,44 @@
 # Project Status
 
-## Current Phase: Phase 4 — Benchmark & Eval Metrics
-## Current Step: Session 19 complete — VCD waveform parser, academic abstract, 123 tests passing
+## Current Phase: Phase 4 — COMPLETE (submission-ready)
+## Current Step: Session 21 + dashboard explainability update — 131 tests passing
+
+### Key Numbers (final)
+| Metric | Value |
+|--------|-------|
+| pytest tests passing | **131** |
+| Regression records | 255 |
+| RTL fault variants | 13 |
+| Fault categories (clusters) | 9 |
+| Classification accuracy | **96.5%** (246/255) |
+| Passed records | 120 (87 golden + 33 latent faults) |
+| Failed records | 135 (detectable injected faults) |
+| AI triage time | 31.5 s |
+| Manual baseline | 180 min (3 h) |
+| Speedup | **342.6×** |
+| LLM confidence (all clusters) | HIGH |
+
+### Test Suite Breakdown
+56 reference model + 9 feature extractor + 22 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser = **131 total**
+
+---
+
+## Session 21 Addendum: Dashboard Explainability (pre-submission)
+- `dashboard/dashboard.py` — Regression DB Summary section rewritten for explainability
+  - `_db_summary()` now computes `golden_passed` and `latent_passed` dynamically from DB records
+  - `_db_summary()` now tracks `variant_pass` and `variant_fail` counts per variant
+  - Passed stat box shows sub-label: "87 golden + 33 latent faults" (computed, not hardcoded)
+  - Failed stat box shows sub-label: "detectable injected faults"
+  - Amber `.latent-note` callout added: explains what latent faults are, why they pass simulation
+    (accumulator values never exceed the narrowed bit-width with current test vectors), pointer to
+    `latent_fault` cluster for structural root-cause analysis
+  - Variant table gains Pass / Fail columns; non-golden variants with any passing records tagged
+    with an orange "latent" badge
+  - New CSS: `.stat-sub`, `.latent-note`, `.tag-latent`, `.pass-cell`, `.fail-cell`, `.zero-cell`
+- `reports/dashboard.html` — regenerated with all new explainability features
+- All 131 tests still pass (4 dashboard tests verified)
+
+---
 
 ## Completed
 - GitHub repo created
