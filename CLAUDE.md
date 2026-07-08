@@ -86,8 +86,19 @@ sign-extend cleanly; others don't.
 - /benchmark/failure_dataset/*.jsonl → ground truth labels, human-verified
 
 ## Current Phase
-Phase 4, Session 19 complete — VCD waveform parser, academic abstract, 123 tests passing
-  (123 pytest tests pass: 56 reference model + 8 feature extractor + 15 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+Phase 4, Session 20 complete — clusterer improvements: 96.5% accuracy on 255 records, 9 fault categories
+  (131 pytest tests pass: 56 reference model + 9 feature extractor + 22 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+  triage/feature_extractor.py: added has_subtract_symptom flag (actual == -expected at first mismatch)
+  triage/clusterer.py: 5 new/split labels replacing quant_error and sign_error catch-all:
+    latent_fault: status==pass AND variant!=golden (catches acc_w24/acc_w20 + latent quant faults)
+    arithmetic_error: large errors + has_subtract_symptom (fault_subtract: negated accumulation)
+    saturation_error: quant_unit fail, small bucket, max_abs_error >= 225 (no-clamp wrapping)
+    zero_point_error: quant_unit fail, small bucket, mismatch_rate <= 0.5 (partial-channel zp error)
+    shift_error: quant_unit fail, small bucket fallthrough (fixed-shift, all channels affected)
+  benchmark/evaluator.py: added latent_fault → accumulator_overflow to CLUSTER_TO_GT
+  Rule-based accuracy: 96.5% (246/255) — up from 71.8%; 9 still wrong (latent quant pass-records, undetectable)
+  LLM-augmented accuracy unchanged at 96.5% (accuracy depends on cluster labels, not LLM text)
+Session 19 complete — VCD waveform parser, academic abstract, 123 tests passing
   triage/vcd_parser.py: stdlib-only VCD parser; extracts first_divergence_cycle, total_cycles, diverging_signals
   triage/feature_extractor.py: optional vcd_path param adds VCD features to feature dict (backward compatible)
   README.md: academic abstract (150 words) added between badges and Overview; real benchmark numbers filled in

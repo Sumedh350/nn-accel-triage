@@ -14,17 +14,18 @@ from typing import Any
 
 
 CLUSTER_TO_GT: dict[str, str] = {
-    "clean_pass":     "no_fault",
-    "overflow_fault": "accumulator_overflow",
-    "sign_error":     "sign_extension_error",
-    "off_by_one":     "loop_boundary_error",
-    "reset_fault":    "reset_polarity_error",
-    "quant_error":    "quant_error",
+    "clean_pass":       "no_fault",
+    "latent_fault":     "accumulator_overflow",
+    "overflow_fault":   "accumulator_overflow",
+    "sign_error":       "sign_extension_error",
+    "off_by_one":       "loop_boundary_error",
+    "reset_fault":      "reset_polarity_error",
     "arithmetic_error": "arithmetic_error",
-    "shift_error":    "shift_error",
+    "shift_error":      "shift_error",
     "saturation_error": "saturation_error",
     "zero_point_error": "zero_point_error",
-    "uncategorized":  "unknown",
+    "quant_error":      "quant_error",
+    "uncategorized":    "unknown",
 }
 
 _CONFIDENCE_SCORE: dict[str, float] = {

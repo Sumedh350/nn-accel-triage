@@ -14,7 +14,7 @@ REQUIRED_KEYS = {
     "run_id", "dut", "variant", "test_name", "status",
     "config_n", "config_data_type", "config_acc_w",
     "mismatch_rate", "max_abs_error", "error_magnitude_bucket",
-    "has_reset_symptom", "has_overflow_symptom",
+    "has_reset_symptom", "has_overflow_symptom", "has_subtract_symptom",
 }
 
 
@@ -146,6 +146,33 @@ def test_overflow_symptom() -> None:
     assert feat["has_overflow_symptom"] is True
     assert feat["has_reset_symptom"] is False
     assert feat["mismatch_rate"] == pytest.approx(1 / 16)
+
+
+def test_subtract_symptom() -> None:
+    """has_subtract_symptom is True when actual == -expected at first mismatch."""
+    base = _make_record(
+        variant="fault_subtract",
+        mismatch_count=16,
+        total_elements=16,
+        max_abs_error=27098,
+        first_actual=0,  # overridden below
+    )
+    # Patch first_mismatch so actual == -expected (13549 negated = -13549).
+    base["mismatch_details"]["first_mismatch"] = {
+        "row": 0, "col": 0, "expected": 13549, "actual": -13549
+    }
+    feat = extract_features(base)
+    assert feat["has_subtract_symptom"] is True
+    assert feat["has_reset_symptom"] is False  # actual != 0
+
+    # Normal mismatch (actual not equal to -expected) → False.
+    base2 = _make_record(variant="fault_wrong_sign", first_actual=46317)
+    feat2 = extract_features(base2)
+    assert feat2["has_subtract_symptom"] is False
+
+    # Pass record → False (no mismatch_details).
+    feat3 = extract_features(_make_record(status="pass", variant="golden"))
+    assert feat3["has_subtract_symptom"] is False
 
 
 def test_bucket_boundaries() -> None:

@@ -1,0 +1,75 @@
+{
+  "stage_times": {
+    "load": 0.002484489989001304,
+    "extract_features": 0.0007755400147289038,
+    "cluster": 0.0893487689900212,
+    "triage": 0.00020685300114564598,
+    "evaluate": 0.0007618340023327619
+  },
+  "total_ai_time": 0.09358760001487099,
+  "manual_baseline_seconds": 24300.0,
+  "speedup_factor": 259649.78262225713,
+  "eval_metrics": {
+    "per_label": {
+      "accumulator_overflow": {
+        "precision": 0.8125,
+        "recall": 1.0,
+        "f1": 0.896551724137931,
+        "support": 39
+      },
+      "arithmetic_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 12
+      },
+      "loop_boundary_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 27
+      },
+      "no_fault": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 87
+      },
+      "reset_polarity_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 27
+      },
+      "saturation_error": {
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571,
+        "support": 12
+      },
+      "shift_error": {
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571,
+        "support": 12
+      },
+      "sign_extension_error": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 27
+      },
+      "zero_point_error": {
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571,
+        "support": 12
+      }
+    },
+    "overall_accuracy": 0.9647058823529412,
+    "mean_confidence": 0.0,
+    "total_records": 255
+  },
+  "timestamp": "2026-07-08T19:34:05.214923+00:00",
+  "mode": "no_llm"
+}

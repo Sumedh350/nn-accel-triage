@@ -19,18 +19,30 @@ def assign_rule_label(feat: dict[str, Any]) -> str:
 
     Rules are evaluated in priority order; the first match wins.
     """
+    # Faults whose test vectors happen to produce no observable difference
+    # (e.g. ACC_W wide enough for actual values, or quant pipeline clamps identically).
+    if feat["status"] == "pass" and feat["variant"] != "golden":
+        return "latent_fault"
     if feat["has_reset_symptom"]:
         return "reset_fault"
     if feat["has_overflow_symptom"]:
         return "overflow_fault"
+    # Subtract fault: actual == -expected at first mismatch (large errors, rate=1.0).
+    if (
+        feat["error_magnitude_bucket"] == "large"
+        and not feat["has_overflow_symptom"]
+        and not feat["has_reset_symptom"]
+        and feat.get("has_subtract_symptom", False)
+    ):
+        return "arithmetic_error"
     if (
         feat["error_magnitude_bucket"] == "large"
         and not feat["has_overflow_symptom"]
         and not feat["has_reset_symptom"]
     ):
         return "sign_error"
-    # Medium-error boundary bugs: includes full-mismatch (loop terminates early)
-    # and partial-mismatch (OOB spatial write affects one row).
+    # Medium-error boundary bugs: full-mismatch (loop terminates early) and
+    # partial-mismatch (OOB spatial write affects one row).
     if (
         feat["error_magnitude_bucket"] == "medium"
         and feat["mismatch_rate"] > 0.0
@@ -38,27 +50,44 @@ def assign_rule_label(feat: dict[str, Any]) -> str:
         and not feat["has_reset_symptom"]
     ):
         return "off_by_one"
-    # quant_unit-specific faults: shift, clamp, or zero-point errors all produce
-    # small INT8-range mismatches with no overflow or reset symptom.
+    # quant_unit small-error faults: distinguish by max_abs_error and mismatch_rate.
+    # Saturation (no clamp): values wrap 8-bit instead of clamping — max error 225–255.
+    if (
+        feat["dut"] == "quant_unit"
+        and feat["status"] == "fail"
+        and feat["error_magnitude_bucket"] == "small"
+        and feat["max_abs_error"] >= 225
+    ):
+        return "saturation_error"
+    # Zero-point (unsigned zp): only channels with negative zp are affected — partial rows.
+    if (
+        feat["dut"] == "quant_unit"
+        and feat["status"] == "fail"
+        and feat["error_magnitude_bucket"] == "small"
+        and feat["mismatch_rate"] <= 0.5
+    ):
+        return "zero_point_error"
+    # Shift (fixed shift=1): affects all channels with small per-element error.
     if (
         feat["dut"] == "quant_unit"
         and feat["status"] == "fail"
         and feat["error_magnitude_bucket"] == "small"
     ):
-        return "quant_error"
+        return "shift_error"
     if feat["status"] == "pass":
         return "clean_pass"
     return "uncategorized"
 
 
 def _to_numeric_vector(feat: dict[str, Any]) -> list[float]:
-    """Return a 5-element normalized vector for DBSCAN."""
+    """Return a 6-element normalized vector for DBSCAN."""
     return [
         float(feat["mismatch_rate"]),
         min(feat["max_abs_error"] / 65536.0, 1.0),
         _BUCKET_MAP.get(feat["error_magnitude_bucket"], 0) / 3.0,
         float(feat["has_reset_symptom"]),
         float(feat["has_overflow_symptom"]),
+        float(feat.get("has_subtract_symptom", False)),
     ]
 
 

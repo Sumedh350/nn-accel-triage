@@ -50,6 +50,13 @@ def extract_features(record: dict, vcd_path: str | Path | None = None) -> dict:
     )
     has_overflow_symptom = max_err >= 32768 and _is_power_of_two(max_err)
 
+    # True when actual == -expected at first mismatch — signature of a subtract fault.
+    if details is not None:
+        fm = details["first_mismatch"]
+        has_subtract_symptom = int(fm["actual"]) == -int(fm["expected"])
+    else:
+        has_subtract_symptom = False
+
     feat: dict = {
         "run_id": record["run_id"],
         "dut": record["dut"],
@@ -64,6 +71,7 @@ def extract_features(record: dict, vcd_path: str | Path | None = None) -> dict:
         "error_magnitude_bucket": _magnitude_bucket(max_err),
         "has_reset_symptom": has_reset_symptom,
         "has_overflow_symptom": has_overflow_symptom,
+        "has_subtract_symptom": has_subtract_symptom,
     }
 
     if vcd_path is not None:

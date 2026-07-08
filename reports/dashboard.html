@@ -74,33 +74,43 @@ footer { text-align: center; color: #a0aec0; font-size: 0.78rem; padding: 12px; 
 </style>
 </head>
 <body>
-<header><h1>NN Accelerator Triage Dashboard</h1><div class="badges"><span class="badge badge-blue">Speedup 342.6×</span><span class="badge badge-green">Accuracy 100%</span><span class="badge badge-purple">Confidence 1.00</span><span class="badge badge-gray">Benchmark 2026-07-07</span></div></header>
+<header><h1>NN Accelerator Triage Dashboard</h1><div class="badges"><span class="badge badge-blue">Speedup 292.8×</span><span class="badge badge-green">Accuracy 72%</span><span class="badge badge-purple">Confidence 0.60</span><span class="badge badge-gray">Benchmark 2026-07-08</span></div></header>
 <main>
-<section><h2>Benchmark Timing</h2><p class="chart-note">Bar widths use log₁₀ scale — <strong>triage</strong> dominates at 99.8% of total AI time (31.46 s). Total pipeline: 31.52 s.</p><div class="chart"><div class="bar-row"><span class="bar-label">load</span><div class="bar-track"><div class="bar-fill" style="width:8.3%"></div></div><span class="bar-value">0.5 ms</span></div>
-<div class="bar-row"><span class="bar-label">extract features</span><div class="bar-track"><div class="bar-fill" style="width:5.0%"></div></div><span class="bar-value">0.0 ms</span></div>
-<div class="bar-row"><span class="bar-label">cluster</span><div class="bar-track"><div class="bar-fill" style="width:43.2%"></div></div><span class="bar-value">64.4 ms</span></div>
-<div class="bar-row"><span class="bar-label">triage</span><div class="bar-track"><div class="bar-fill bar-fill-dominant" style="width:100.0%"></div></div><span class="bar-value">31.458 s</span></div>
-<div class="bar-row"><span class="bar-label">evaluate</span><div class="bar-track"><div class="bar-fill" style="width:9.7%"></div></div><span class="bar-value">0.7 ms</span></div>
+<section><h2>Benchmark Timing</h2><p class="chart-note">Bar widths use log₁₀ scale — <strong>triage</strong> dominates at 99.8% of total AI time (46.02 s). Total pipeline: 46.11 s.</p><div class="chart"><div class="bar-row"><span class="bar-label">load</span><div class="bar-track"><div class="bar-fill" style="width:10.7%"></div></div><span class="bar-value">2.0 ms</span></div>
+<div class="bar-row"><span class="bar-label">extract features</span><div class="bar-track"><div class="bar-fill" style="width:5.0%"></div></div><span class="bar-value">0.6 ms</span></div>
+<div class="bar-row"><span class="bar-label">cluster</span><div class="bar-track"><div class="bar-fill" style="width:41.1%"></div></div><span class="bar-value">79.2 ms</span></div>
+<div class="bar-row"><span class="bar-label">triage</span><div class="bar-track"><div class="bar-fill bar-fill-dominant" style="width:100.0%"></div></div><span class="bar-value">46.025 s</span></div>
+<div class="bar-row"><span class="bar-label">evaluate</span><div class="bar-track"><div class="bar-fill" style="width:5.9%"></div></div><span class="bar-value">0.8 ms</span></div>
 </div></section>
-<section><h2>Cluster Summary</h2><table><thead><tr><th>Cluster Label</th><th>Records</th><th>Failures</th><th>Mismatch Rate</th><th>Max Abs Error</th></tr></thead><tbody><tr><td><code>clean_pass</code></td><td>15</td><td>0</td><td>—</td><td>—</td></tr>
-<tr><td><code>off_by_one</code></td><td>3</td><td>3</td><td>1.000–1.000</td><td>11,110–13,688</td></tr>
-<tr><td><code>overflow_fault</code></td><td>3</td><td>3</td><td>0.062–0.062</td><td>65,536–65,536</td></tr>
-<tr><td><code>reset_fault</code></td><td>3</td><td>3</td><td>1.000–1.000</td><td>32,946–37,206</td></tr>
-<tr><td><code>sign_error</code></td><td>3</td><td>3</td><td>0.750–1.000</td><td>49,152–65,792</td></tr>
+<section><h2>Cluster Summary</h2><table><thead><tr><th>Cluster Label</th><th>Records</th><th>Failures</th><th>Mismatch Rate</th><th>Max Abs Error</th></tr></thead><tbody><tr><td><code>clean_pass</code></td><td>120</td><td>0</td><td>—</td><td>—</td></tr>
+<tr><td><code>off_by_one</code></td><td>27</td><td>27</td><td>0.250–1.000</td><td>798–13,688</td></tr>
+<tr><td><code>overflow_fault</code></td><td>15</td><td>15</td><td>0.062–0.062</td><td>65,536–65,536</td></tr>
+<tr><td><code>quant_error</code></td><td>27</td><td>27</td><td>0.125–1.000</td><td>108–252</td></tr>
+<tr><td><code>reset_fault</code></td><td>27</td><td>27</td><td>1.000–1.000</td><td>45–37,206</td></tr>
+<tr><td><code>sign_error</code></td><td>39</td><td>39</td><td>0.500–1.000</td><td>49,152–74,412</td></tr>
 </tbody></table></section>
 <section><h2>Per-Cluster Triage Reports</h2><div class="card"><h3><code>off_by_one</code></h3><div class="card-row"><strong>Likely cause:</strong> An off-by-one indexing error in the accumulation loop bounds or partial-sum address calculation causes every output element to accumulate one too many or too few MAC operations, producing a 100% mismatch rate with large systematic errors consistent with a full row/column of int8 products being added or omitted.</div><div class="card-row"><strong>Confidence:</strong> <span class="conf-high">HIGH</span></div><div class="card-row"><strong>Debug steps:</strong><ol class="steps-list"><li>Inspect loop-bound literals and fence-post conditions in the MAC accumulation FSM or generate loop (e.g., &#x27;&lt;&#x27; vs &#x27;&lt;=&#x27; on the K/channel dimension index) and compare against the golden reference model.</li><li>Add waveform probes on the accumulator enable, the loop counter terminal-count signal, and the write-back address for N=4 to confirm exactly one extra or missing accumulation step per output tile.</li><li>Cross-check the partial-sum read/write pointer arithmetic in the address generator for an off-by-one in the base-address offset or stride calculation that could shift every result by one element.</li></ol></div><div class="card-row"><strong>Affected configs:</strong> mac_array/N=4/INT8/AW32/fault_off_by_one</div></div>
 <div class="card"><h3><code>overflow_fault</code></h3><div class="card-row"><strong>Likely cause:</strong> The accumulator register is missing one bit of width, causing a wrap-around overflow at 2^16 (65536) when accumulating INT8 products for N=4, indicating the accumulator is likely declared as 16-bit signed instead of the required 17+ bit width.</div><div class="card-row"><strong>Confidence:</strong> <span class="conf-high">HIGH</span></div><div class="card-row"><strong>Debug steps:</strong><ol class="steps-list"><li>Inspect the RTL accumulator register declaration and verify its bit-width is sufficient to hold the maximum possible accumulated sum (N * 127 * 127 for INT8 inputs) without overflow.</li><li>Check the partial-product addition logic for any implicit truncation or narrowing casts that would cap the result at 16 bits, particularly looking for missing carry-out bits in the adder chain.</li><li>Run a directed test with inputs set to maximum INT8 values (127 * 127) and N=4 to confirm the overflow threshold matches 2^16, then compare against the golden model with a wider accumulator.</li></ol></div><div class="card-row"><strong>Affected configs:</strong> mac_array/N=4/INT8/AW32/fault_acc_overflow</div></div>
 <div class="card"><h3><code>reset_fault</code></h3><div class="card-row"><strong>Likely cause:</strong> Accumulator or weight/activation registers are not properly cleared on reset, causing stale garbage values from previous computations to corrupt all outputs when the accelerator is restarted.</div><div class="card-row"><strong>Confidence:</strong> <span class="conf-high">HIGH</span></div><div class="card-row"><strong>Debug steps:</strong><ol class="steps-list"><li>Inspect RTL reset logic for all pipeline registers, accumulators, and scratchpad memories to verify synchronous/asynchronous reset is correctly connected and asserted for the required number of cycles.</li><li>Run a waveform simulation of the fault_reset scenario and check register values immediately after reset deassertion to confirm whether accumulator and data path registers hold zero or contain stale data.</li><li>Review the reset sequencing in the testbench and DUT top-level to ensure the reset pulse width meets the minimum required duration and that all clock domains are properly reset before computation begins.</li></ol></div><div class="card-row"><strong>Affected configs:</strong> mac_array/N=4/INT8/AW32/fault_reset</div></div>
 <div class="card"><h3><code>sign_error</code></h3><div class="card-row"><strong>Likely cause:</strong> The sign bit of INT8 operands is not being extended or interpreted correctly during accumulation, likely due to a missing or incorrect sign-extension when widening 8-bit signed values to a wider datapath, causing large magnitude errors consistent with flipped sign contributions.</div><div class="card-row"><strong>Confidence:</strong> <span class="conf-high">HIGH</span></div><div class="card-row"><strong>Debug steps:</strong><ol class="steps-list"><li>Inspect the sign-extension logic where INT8 inputs are cast to wider integer types (e.g., 8-bit to 16/32-bit) in the multiply-accumulate datapath and verify `$signed()` or explicit sign-extension is applied correctly.</li><li>Add waveform probes on the input operand sign bits and the extended/widened versions entering the multiplier to confirm whether the MSB is being replicated or zero-filled incorrectly.</li><li>Write a directed test using a known negative INT8 value (e.g., -1 = 0xFF) and verify the accumulated output matches the expected signed result, isolating whether the error is in sign-extension, two&#x27;s-complement interpretation, or final output truncation.</li></ol></div><div class="card-row"><strong>Affected configs:</strong> mac_array/N=4/INT8/AW32/fault_wrong_sign</div></div>
 </section>
-<section><h2>Regression DB Summary</h2><div class="stat-boxes"><div class="stat-box"><div class="num">27</div><div class="lbl">Total Records</div></div><div class="stat-box pass"><div class="num">15</div><div class="lbl">Passed</div></div><div class="stat-box fail"><div class="num">12</div><div class="lbl">Failed</div></div></div>
-<table><thead><tr><th>Variant</th><th>Record Count</th></tr></thead><tbody><tr><td><code>fault_acc_overflow</code></td><td>3</td></tr>
-<tr><td><code>fault_off_by_one</code></td><td>3</td></tr>
-<tr><td><code>fault_reset</code></td><td>3</td></tr>
-<tr><td><code>fault_wrong_sign</code></td><td>3</td></tr>
-<tr><td><code>golden</code></td><td>15</td></tr>
+<section><h2>Regression DB Summary</h2><div class="stat-boxes"><div class="stat-box"><div class="num">255</div><div class="lbl">Total Records</div></div><div class="stat-box pass"><div class="num">120</div><div class="lbl">Passed</div></div><div class="stat-box fail"><div class="num">135</div><div class="lbl">Failed</div></div></div>
+<table><thead><tr><th>Variant</th><th>Record Count</th></tr></thead><tbody><tr><td><code>fault_acc_overflow</code></td><td>15</td></tr>
+<tr><td><code>fault_acc_w20</code></td><td>12</td></tr>
+<tr><td><code>fault_acc_w24</code></td><td>12</td></tr>
+<tr><td><code>fault_b_unsigned</code></td><td>12</td></tr>
+<tr><td><code>fault_loop_over</code></td><td>12</td></tr>
+<tr><td><code>fault_off_by_one</code></td><td>15</td></tr>
+<tr><td><code>fault_quant_no_clamp</code></td><td>12</td></tr>
+<tr><td><code>fault_quant_reset</code></td><td>12</td></tr>
+<tr><td><code>fault_quant_shift_fixed</code></td><td>12</td></tr>
+<tr><td><code>fault_quant_wrong_sign_zp</code></td><td>12</td></tr>
+<tr><td><code>fault_reset</code></td><td>15</td></tr>
+<tr><td><code>fault_subtract</code></td><td>12</td></tr>
+<tr><td><code>fault_wrong_sign</code></td><td>15</td></tr>
+<tr><td><code>golden</code></td><td>87</td></tr>
 </tbody></table></section>
 </main>
-<footer>Generated 2026-07-07T19:18:13</footer>
+<footer>Generated 2026-07-09T00:46:00</footer>
 </body>
 </html>

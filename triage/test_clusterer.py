@@ -32,6 +32,7 @@ def make_feat(**overrides) -> dict:
         "error_magnitude_bucket": "small",
         "has_reset_symptom": False,
         "has_overflow_symptom": False,
+        "has_subtract_symptom": False,
     }
     base.update(overrides)
     return base
@@ -66,13 +67,78 @@ def test_sign_error():
         error_magnitude_bucket="large",
         has_overflow_symptom=False,
         has_reset_symptom=False,
+        has_subtract_symptom=False,
     )
     assert assign_rule_label(feat) == "sign_error"
+
+
+def test_arithmetic_error():
+    feat = make_feat(
+        error_magnitude_bucket="large",
+        has_overflow_symptom=False,
+        has_reset_symptom=False,
+        has_subtract_symptom=True,
+        mismatch_rate=1.0,
+    )
+    assert assign_rule_label(feat) == "arithmetic_error"
+
+
+def test_latent_fault():
+    feat = make_feat(
+        status="pass",
+        variant="fault_acc_w24",
+        mismatch_rate=0.0,
+        max_abs_error=0,
+        error_magnitude_bucket="none",
+        has_reset_symptom=False,
+        has_overflow_symptom=False,
+    )
+    assert assign_rule_label(feat) == "latent_fault"
+
+
+def test_saturation_error():
+    feat = make_feat(
+        dut="quant_unit",
+        status="fail",
+        error_magnitude_bucket="small",
+        max_abs_error=245,
+        mismatch_rate=1.0,
+        has_reset_symptom=False,
+        has_overflow_symptom=False,
+    )
+    assert assign_rule_label(feat) == "saturation_error"
+
+
+def test_zero_point_error():
+    feat = make_feat(
+        dut="quant_unit",
+        status="fail",
+        error_magnitude_bucket="small",
+        max_abs_error=150,
+        mismatch_rate=0.25,
+        has_reset_symptom=False,
+        has_overflow_symptom=False,
+    )
+    assert assign_rule_label(feat) == "zero_point_error"
+
+
+def test_shift_error():
+    feat = make_feat(
+        dut="quant_unit",
+        status="fail",
+        error_magnitude_bucket="small",
+        max_abs_error=130,
+        mismatch_rate=0.75,
+        has_reset_symptom=False,
+        has_overflow_symptom=False,
+    )
+    assert assign_rule_label(feat) == "shift_error"
 
 
 def test_clean_pass():
     feat = make_feat(
         status="pass",
+        variant="golden",
         has_reset_symptom=False,
         has_overflow_symptom=False,
         error_magnitude_bucket="none",
@@ -100,6 +166,29 @@ def test_uncategorized():
 def test_reset_beats_overflow():
     feat = make_feat(has_reset_symptom=True, has_overflow_symptom=True)
     assert assign_rule_label(feat) == "reset_fault"
+
+
+def test_arithmetic_beats_sign_error():
+    """has_subtract_symptom fires arithmetic_error before the generic sign_error rule."""
+    feat = make_feat(
+        error_magnitude_bucket="large",
+        has_overflow_symptom=False,
+        has_reset_symptom=False,
+        has_subtract_symptom=True,
+    )
+    assert assign_rule_label(feat) == "arithmetic_error"
+
+
+def test_latent_beats_clean_pass():
+    """A non-golden pass record is latent_fault, not clean_pass."""
+    feat = make_feat(
+        status="pass",
+        variant="fault_acc_w20",
+        mismatch_rate=0.0,
+        max_abs_error=0,
+        error_magnitude_bucket="none",
+    )
+    assert assign_rule_label(feat) == "latent_fault"
 
 
 def test_overflow_beats_off_by_one():
@@ -148,14 +237,22 @@ def test_all_real_records_labeled():
         f"Unexpected uncategorized records: "
         f"{[r for r in result if r['cluster_label'] == 'uncategorized']}"
     )
+    assert "quant_error" not in labels, (
+        f"quant_error should be split into shift/saturation/zero_point: "
+        f"{[r for r in result if r['cluster_label'] == 'quant_error']}"
+    )
 
     counts = Counter(labels)
-    assert counts["clean_pass"] >= 15
+    assert counts["clean_pass"] >= 15          # golden records
+    assert counts["latent_fault"] >= 6         # acc_w24 + acc_w20 (+ quant latents)
     assert counts["reset_fault"] >= 3
     assert counts["overflow_fault"] >= 3
     assert counts["off_by_one"] >= 3
     assert counts["sign_error"] >= 3
-    assert counts["quant_error"] >= 3
+    assert counts["arithmetic_error"] >= 3     # fault_subtract
+    assert counts["shift_error"] >= 3          # fault_quant_shift_fixed (failing)
+    assert counts["saturation_error"] >= 3     # fault_quant_no_clamp (failing)
+    assert counts["zero_point_error"] >= 3     # fault_quant_wrong_sign_zp (failing)
 
 
 # ---------------------------------------------------------------------------

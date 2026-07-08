@@ -322,6 +322,28 @@
 - [x] RAG store for historical failures (triage/rag_store.py)
 - [x] Multi-turn agentic debug loop (triage/debug_loop.py)
 
+## Session 20: COMPLETE
+- `triage/feature_extractor.py` — added `has_subtract_symptom` feature
+  - True when `mismatch_details` exists and `first_mismatch.actual == -first_mismatch.expected`
+  - Cleanly identifies fault_subtract (negated accumulation) vs sign-extension faults
+  - Also included in `_to_numeric_vector` for DBSCAN
+- `triage/clusterer.py` — 5 new/split labels; quant_error retired
+  - `latent_fault`: `status == "pass" AND variant != "golden"` — catches acc_w24/acc_w20 + latent quant records
+  - `arithmetic_error`: large bucket + has_subtract_symptom (actual == -expected)
+  - `saturation_error`: quant_unit fail, small bucket, `max_abs_error >= 225` (no-clamp wrap 231–252)
+  - `zero_point_error`: quant_unit fail, small bucket, `mismatch_rate <= 0.5` (partial-channel zp corruption)
+  - `shift_error`: quant_unit fail, small bucket fallthrough (fixed shift=1, all channels, rate 0.625–1.0)
+  - Rule priority: latent_fault → reset → overflow → arithmetic → sign → off_by_one → saturation → zero_point → shift → clean_pass
+- `benchmark/evaluator.py` — added `"latent_fault": "accumulator_overflow"` to CLUSTER_TO_GT
+- `triage/test_feature_extractor.py` — added `has_subtract_symptom` to REQUIRED_KEYS; new `test_subtract_symptom`
+- `triage/test_clusterer.py` — 7 new tests (arithmetic_error, latent_fault, saturation_error, zero_point_error,
+  shift_error, test_arithmetic_beats_sign_error, test_latent_beats_clean_pass); updated DB coverage test
+- `README.md` — abstract, Overview, Key Results table updated with expanded benchmark numbers (71.8% → 96.5%)
+- Accuracy improvement: 71.8% (183/255) → **96.5% (246/255)** — +27.2 pp
+  - 9 records still wrong: latent quant faults (pass-records for shift_fixed/no_clamp/wrong_sign_zp) undetectable by any symptom flag
+- Total test suite: **131 tests** (123 prior + 8 new), 0 failures
+  (56 reference model + 9 feature extractor + 22 clusterer + 8 triage agent + 14 RAG store + 5 debug loop + 5 evaluator + 5 benchmark runner + 4 dashboard + 3 VCD parser)
+
 ## Phase 4 Goals — COMPLETE
 - [x] Ground truth labels and eval metrics (benchmark/)
 - [x] End-to-end benchmark runner (benchmark/benchmark_runner.py)
@@ -329,7 +351,8 @@
 - [x] Triage dashboard (dashboard/dashboard.py → reports/dashboard.html)
 - [x] Docker + README + one-command reproduce (docker/, README.md, requirements.txt, pytest.ini)
 - [x] Programmatic fault generator (scripts/generate_faults.py: 9 new RTL variants)
-- [x] Rule-based-only benchmark baseline (--no-llm: 72.7% accuracy vs 100% LLM)
+- [x] Rule-based-only benchmark baseline (--no-llm: 96.5% accuracy, up from 72.7%)
+- [x] Clusterer sub-category splitting: 9 fault categories, latent_fault detection
 
 ## Blockers / Open Questions
 - None

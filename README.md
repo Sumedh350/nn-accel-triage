@@ -9,11 +9,11 @@
 
 ## Abstract
 
-We present NN-Accel-Triage, an agentic AI system for automated failure triage in neural-network accelerator verification. Given a regression database of RTL simulation mismatches, the system clusters failures by symptom, generates structured root-cause reports via a large language model with retrieval-augmented generation and multi-turn reasoning, and benchmarks triage quality against ground truth labels. On a dataset of 13 fault variants across 8 fault categories in a parameterized MAC array and quantization unit, our approach achieves 100% clustering accuracy with mean confidence 1.000, reducing triage time from an estimated 180 minutes to 31.5 seconds (342× speedup). A rule-based baseline achieves 72.7% accuracy without LLM augmentation, demonstrating the value of the agentic component. We release the benchmark dataset, RTL fault variants, triage pipeline, and dashboard as open-source artifacts.
+We present NN-Accel-Triage, an agentic AI system for automated failure triage in neural-network accelerator verification. Given a regression database of RTL simulation mismatches, the system clusters failures by symptom, generates structured root-cause reports via a large language model with retrieval-augmented generation and multi-turn reasoning, and benchmarks triage quality against ground truth labels. On an expanded benchmark of 13 fault variants across 9 fault categories and 255 records in a parameterized MAC array and quantization unit, our approach achieves 71.8% clustering accuracy with mean LLM confidence 0.800, reducing triage time from an estimated 225 minutes to 46 seconds (293× speedup). On the original 4-fault, 27-record benchmark, accuracy is 100% with mean confidence 1.000 (342× speedup). A rule-based baseline achieves 71.8% accuracy without LLM augmentation; the LLM adds structured root-cause explanations and confidence scores. We release the benchmark dataset, RTL fault variants, triage pipeline, and dashboard as open-source artifacts.
 
 ## Overview
 
-This project builds a layered testbench for a small neural-network accelerator RTL design and integrates an AI triage agent that automatically clusters regression failures, generates natural-language root-cause summaries, and recommends next debug steps. The AI pipeline processes mismatch logs, trace data, and scoreboard records from CocoTB/Verilator simulations, then uses Claude to produce structured per-cluster triage reports — achieving a **342.6× speedup** over manual triage with **100% accuracy** on the benchmark dataset.
+This project builds a layered testbench for a small neural-network accelerator RTL design and integrates an AI triage agent that automatically clusters regression failures, generates natural-language root-cause summaries, and recommends next debug steps. The AI pipeline processes mismatch logs, trace data, and scoreboard records from CocoTB/Verilator simulations, then uses Claude to produce structured per-cluster triage reports — achieving a **293× speedup** over manual triage with **71.8% accuracy** on the expanded 13-fault, 255-record benchmark (100% on the original 4-fault benchmark).
 
 **Five Core Objectives:**
 - (i) Verify functional correctness across tensor shapes, quantization, and memory behaviors
@@ -60,8 +60,8 @@ This project builds a layered testbench for a small neural-network accelerator R
                     ▼                                           ▼
         ┌───────────────────────┐               ┌──────────────────────┐
         │  Benchmark Runner     │               │  Dashboard           │
-        │  342.6x speedup       │               │  reports/dashboard   │
-        │  100% accuracy        │               │  .html               │
+        │  293x speedup         │               │  reports/dashboard   │
+        │  71.8% accuracy       │               │  .html               │
         └───────────────────────┘               └──────────────────────┘
 ```
 
@@ -138,7 +138,7 @@ nn-accel-triage/
 │   ├── quant_unit.sv           # Per-channel INT8 asymmetric quantization
 │   ├── mem_arbiter.sv          # Round-robin shared SRAM arbiter
 │   ├── control_fsm.sv          # Top-level sequencer (LOAD→COMPUTE→QUANT→STORE)
-│   └── faults/                 # Frozen fault-injected variants (4 bugs)
+│   └── faults/                 # Frozen fault-injected variants (13 bugs)
 ├── tb/
 │   ├── cocotb/                 # CocoTB 2.x simulation tests + Makefile
 │   └── reference_model/        # NumPy golden reference (mac_ref.py, quant_ref.py)
@@ -157,7 +157,7 @@ nn-accel-triage/
 ├── reports/                    # Generated outputs (dashboard.html, benchmark JSON)
 ├── docs/
 │   └── mismatch_schema.json    # JSON Schema for regression_db records
-├── regression_db.jsonl         # Append-only central regression log (27 entries)
+├── regression_db.jsonl         # Append-only central regression log (255+ entries)
 ├── requirements.txt
 └── docker/
     ├── Dockerfile
@@ -167,23 +167,35 @@ nn-accel-triage/
 
 ## Key Results
 
+### Expanded benchmark (13 faults, 255 records)
+
+| Metric | LLM-augmented | Rule-based only |
+|--------|--------------|-----------------|
+| Overall accuracy | **71.8%** (183/255) | 71.8% (183/255) |
+| Mean confidence | 0.800 | 0.000 |
+| AI pipeline time | 46 s | 0.1 s |
+| Manual baseline (est.) | 225 min (45 min × 5 clusters) | 225 min |
+| **Speedup vs manual** | **293×** | **63,000×** |
+| Failure clusters | 5 (overflow, sign_error, off_by_one, reset, quant_error) | 5 |
+
+### Original benchmark (4 faults, 27 records)
+
 | Metric | Value |
 |--------|-------|
 | AI pipeline time | 31.5 s |
 | Manual baseline (est.) | 180 min (45 min × 4 failure clusters) |
 | **Speedup vs manual** | **342.6×** |
-| Overall clustering accuracy | 100% (27/27 records) |
+| Overall clustering accuracy | **100%** (27/27 records) |
 | Mean triage confidence | High (1.000) |
-| Test suite | 120 tests, 0 failures |
-| Failure clusters detected | 4 (overflow, sign_error, off_by_one, reset) |
+| Test suite | 123 tests, 0 failures |
 
-Breakdown of triage pipeline stages:
+Breakdown of triage pipeline stages (expanded benchmark):
 
 | Stage | Time |
 |-------|------|
 | Load + feature extraction | < 0.01 s |
-| Clustering | < 0.01 s |
-| Claude API triage (4 clusters) | ~31.5 s |
+| Clustering | < 0.1 s |
+| Claude API triage (5 clusters) | ~46 s |
 | Evaluation | < 0.01 s |
 
 ## Citation
@@ -194,6 +206,6 @@ Breakdown of triage pipeline stages:
   author = {sum},
   year   = {2026},
   url    = {https://github.com/<your-github>/nn-accel-triage},
-  note   = {CocoTB/Verilator testbench with Claude-powered triage agent; 342.6x speedup over manual triage}
+  note   = {CocoTB/Verilator testbench with Claude-powered triage agent; 293x speedup (expanded 13-fault benchmark), 342.6x on original 4-fault benchmark}
 }
 ```
